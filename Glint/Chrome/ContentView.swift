@@ -777,6 +777,13 @@ private struct TabIcon: View {
                 AnimatedGIFView(assetName: MascotAsset.codex(for: status),
                                 animates: !reduceMotion && isBusy)
                     .frame(width: size * 1.07, height: size * 1.07)
+            case .opencode:
+                Image("OpenCode")
+                    .resizable()
+                    .interpolation(.high)
+                    .aspectRatio(contentMode: .fill)
+                    .frame(width: size * 1.02, height: size * 1.02)
+                    .clipShape(RoundedRectangle(cornerRadius: size * 0.18, style: .continuous))
             default:
                 if let sf = kind.sfSymbol {
                     Image(systemName: sf)
@@ -1472,12 +1479,22 @@ private struct WorkspaceMicroIcon: View {
             if case .claude = kind { return true }
             return false
         }()
+        let isOpenCode: Bool = {
+            if case .opencode = kind { return true }
+            return false
+        }()
         Group {
             if isClaude {
                 Image(store.claudeIconStyle == .spark ? "ClaudeSpark" : "Claude")
                     .resizable()
                     .interpolation(.high)
                     .aspectRatio(contentMode: .fill)
+            } else if isOpenCode {
+                Image("OpenCode")
+                    .resizable()
+                    .interpolation(.high)
+                    .aspectRatio(contentMode: .fill)
+                    .clipShape(RoundedRectangle(cornerRadius: size * 0.16, style: .continuous))
             } else if let sf = kind.sfSymbol {
                 Image(systemName: sf)
                     .font(.system(size: size * 0.5, weight: .medium))

@@ -751,11 +751,17 @@ private struct WorkspaceCard: View {
             if case .codex = kind { return true }
             return false
         }()
+        let isOpenCode: Bool = {
+            if case .opencode = kind { return true }
+            return false
+        }()
         return Group {
             if isClaude {
                 ClaudeMascotIcon(status: status)
             } else if isCodex {
                 CodexMascotIcon(status: status)
+            } else if isOpenCode {
+                OpenCodeLogoIcon(status: status)
             } else if let sf = kind.sfSymbol {
                 // No squircle container — a bit larger so the bare glyph
                 // holds the same visual weight as the mascots.
@@ -779,7 +785,9 @@ private struct WorkspaceCard: View {
                     ? Color(red: 0.92, green: 0.55, blue: 0.32).opacity(0.5)
                     : isCodex
                         ? Color(red: 0.32, green: 0.38, blue: 1.0).opacity(0.5)
-                        : Theme.accent.opacity(0.5))
+                        : isOpenCode
+                            ? Color.white.opacity(0.35)
+                            : Theme.accent.opacity(0.5))
                 : .clear,
             radius: 8
         )
@@ -1161,6 +1169,36 @@ private struct ClaudeMascotIcon: View {
 /// cursor, thinking = sway + cursor fade, everything else = the static
 /// idle frame. Done shares idle by design — the celebrate scale pop and
 /// the corner badge's green light carry the moment.
+private struct OpenCodeLogoIcon: View {
+    let status: PaneAgentStatus?
+    @State private var celebrateScale: CGFloat = 1.0
+    @State private var tapScale: CGFloat = 1.0
+
+    var body: some View {
+        Image("OpenCode")
+            .resizable()
+            .interpolation(.high)
+            .aspectRatio(contentMode: .fill)
+            .frame(width: 28, height: 28)
+            .clipShape(RoundedRectangle(cornerRadius: 6, style: .continuous))
+            .scaleEffect(celebrateScale * tapScale, anchor: .bottom)
+            .onChange(of: status) { oldStatus, newStatus in
+                if newStatus == .justCompleted && oldStatus != .justCompleted {
+                    celebrateScale = 1.12
+                    withAnimation(.spring(response: 0.4, dampingFraction: 0.5)) {
+                        celebrateScale = 1.0
+                    }
+                }
+            }
+            .onTapGesture {
+                tapScale = 0.9
+                withAnimation(.spring(response: 0.32, dampingFraction: 0.5)) {
+                    tapScale = 1.0
+                }
+            }
+    }
+}
+
 private struct CodexMascotIcon: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let status: PaneAgentStatus?
