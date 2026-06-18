@@ -941,16 +941,20 @@ final class WorkspaceStore: ObservableObject {
         // paneAgentState and no hook fires when an agent quits, so after
         // e.g. claude → exit → shell the pane can keep kind == .claude and
         // iconKind (which prefers hook state over pid polling) stays stuck.
-        // The poller is authoritative for whether an agent process is still
-        // the foreground process: transfer state to a different live agent or
-        // remove the stale state once the pane is back at a shell/tool.
+        // The poller is authoritative for whether the pane has returned to a
+        // shell. Transfer state to a different live agent, but do not clear
+        // just because the foreground process is a tool/wrapper: Claude/Codex
+        // can temporarily foreground child processes while the session is
+        // still alive.
         for key in observedPaneKeys {
             guard var state = paneAgentState[key] else { continue }
-            let runningKind = newProcesses[key].flatMap(Self.agentKind(forProcessName:))
-            guard let runningKind else {
+            let processName = newProcesses[key]
+            let runningKind = processName.flatMap(Self.agentKind(forProcessName:))
+            if runningKind == nil, Self.isBenignShellProcessName(processName) {
                 paneAgentState.removeValue(forKey: key)
                 continue
             }
+            guard let runningKind else { continue }
             if runningKind != state.kind {
                 state.kind = runningKind
                 state.status = .idle
@@ -1220,6 +1224,11 @@ final class WorkspaceStore: ObservableObject {
         if lower.contains("claude") { return .claude }
         if lower.contains("codex") { return .codex }
         return nil
+    }
+
+    private static func isBenignShellProcessName(_ name: String?) -> Bool {
+        guard let name, !name.isEmpty else { return true }
+        return benignShells.contains(name.lowercased())
     }
 
     /// True when killing this pane would interrupt real work: a CLI agent
