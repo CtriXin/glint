@@ -21,6 +21,8 @@
 	</array>
 	<key>CFBundleName</key>
 	<string>$(PRODUCT_NAME)</string>
+	<key>GLINTSupportDirName</key>
+	<string>$(GLINT_SUPPORT_DIR_NAME)</string>
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
