@@ -2536,9 +2536,10 @@ final class WorkspaceStore: ObservableObject {
 
     func splitFocused(_ direction: SplitDirection, agentCommand: String? = nil, codexHome: String? = nil) {
         guard let i = currentIndex, let t = workspaces[i].selectedTabIndex else { return }
+        let inheritedCwd = currentFocusedCwd()
         let new = PaneID(value: workspaces[i].nextPaneSeq)
         workspaces[i].nextPaneSeq += 1
-        workspaces[i].panes[new] = Pane(id: new, title: "zsh", workingDirectory: nil)
+        workspaces[i].panes[new] = Pane(id: new, title: "zsh", workingDirectory: inheritedCwd)
         workspaces[i].tabs[t].root = Self.splitLeaf(
             workspaces[i].tabs[t].root,
             target: workspaces[i].tabs[t].focusedPane,
@@ -3046,13 +3047,26 @@ final class WorkspaceStore: ObservableObject {
 
     // MARK: tab operations on the current workspace
 
+    /// Use the live terminal cwd when available so a fast `cd` followed by a
+    /// creation shortcut cannot inherit an older shell-integration snapshot.
+    /// The persisted pane value covers surfaces that have not been mounted yet.
+    private func currentFocusedCwd() -> String? {
+        guard let i = currentIndex,
+              let pane = workspaces[i].selectedTab?.focusedPane else { return nil }
+        let key = WorkspacePaneKey(workspace: workspaces[i].id, pane: pane)
+        if let cwd = surfaceViews[key]?.currentCwd(), !cwd.isEmpty {
+            workspaces[i].panes[pane]?.workingDirectory = cwd
+            return cwd
+        }
+        return workspaces[i].panes[pane]?.workingDirectory
+    }
+
     /// Open a new tab in the current workspace, inheriting the focused pane's
     /// cwd (terminal convention: a new tab opens "here"). Inserts it right
     /// after the current tab and selects it.
     func newTab(cwd: String? = nil, agentCommand: String? = nil, codexHome: String? = nil) {
         guard let i = currentIndex else { return }
-        let inheritedCwd = (workspaces[i].selectedTab?.focusedPane)
-            .flatMap { workspaces[i].panes[$0]?.workingDirectory }
+        let inheritedCwd = cwd ?? currentFocusedCwd()
         let pane = PaneID(value: workspaces[i].nextPaneSeq)
         workspaces[i].nextPaneSeq += 1
         workspaces[i].panes[pane] = Pane(id: pane, title: "zsh", workingDirectory: cwd ?? inheritedCwd)
@@ -3354,13 +3368,17 @@ final class WorkspaceStore: ObservableObject {
     }
 
     func addWorkspace(agentCommand: String? = nil, codexHome: String? = nil) {
+        // Read before changing selection: every terminal creation action starts
+        // from the focused pane's current directory when Glint knows it.
+        let inheritedCwd = currentFocusedCwd()
         let palette = [
             ("5E5CE6", "•"), ("FF6582", "•"), ("30D158", "•"),
             ("FF9F0A", "•"), ("64D2FF", "•"), ("BF5AF2", "•"),
         ]
         let pick = palette[workspaces.count % palette.count]
         // Auto-named: fallback label is "New workspace" until the shell reports a cwd.
-        let ws = Workspace.fresh(name: String(localized: "New workspace"), accentHex: pick.0, symbol: pick.1)
+        var ws = Workspace.fresh(name: String(localized: "New workspace"), accentHex: pick.0, symbol: pick.1)
+        ws.panes[PaneID(value: 0)]?.workingDirectory = inheritedCwd
         workspaces.append(ws)
         selectedWorkspaceID = ws.id
         // Workspace.fresh seeds a single pane at PaneID 0.

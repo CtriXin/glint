@@ -552,6 +552,31 @@ final class WebRemoteProtocolTests: XCTestCase {
         XCTAssertNil(WebRemoteCrypto.openFrame(nonce: Data(count: 8), body: body, key: keys.s2c))
     }
 
+    @MainActor
+    func testNewTerminalActionsInheritFocusedPaneCwd() throws {
+        let cwd = "/tmp/a/path"
+        var workspace = Workspace.fresh(name: "Source", accentHex: "5E5CE6", symbol: "S")
+        let sourceTab = try XCTUnwrap(workspace.selectedTab)
+        workspace.panes[sourceTab.focusedPane]?.workingDirectory = cwd
+
+        let store = WorkspaceStore(activity: PaneActivityStore())
+        store.workspaces = [workspace]
+        store.selectedWorkspaceID = workspace.id
+
+        store.newTab()
+        let tabPane = try XCTUnwrap(store.selectedWorkspace?.selectedTab?.focusedPane)
+        XCTAssertEqual(store.selectedWorkspace?.panes[tabPane]?.workingDirectory, cwd)
+
+        store.selectTab(sourceTab.id)
+        store.splitFocused(.horizontal)
+        let splitPane = try XCTUnwrap(store.selectedWorkspace?.selectedTab?.focusedPane)
+        XCTAssertEqual(store.selectedWorkspace?.panes[splitPane]?.workingDirectory, cwd)
+
+        store.addWorkspace()
+        let workspacePane = try XCTUnwrap(store.selectedWorkspace?.selectedTab?.focusedPane)
+        XCTAssertEqual(store.selectedWorkspace?.panes[workspacePane]?.workingDirectory, cwd)
+    }
+
     func testCryptoAssetIsRegisteredForTheClient() {
         XCTAssertEqual(
             WebRemoteAssets.asset(for: "/crypto.mjs")?.contentType,
