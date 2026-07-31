@@ -3379,8 +3379,8 @@ final class WorkspaceStore: ObservableObject {
     func openURL(_ url: URL) {
         if url.isFileURL {
             openPath(url.path)
-        } else if url.scheme == "glint" {
-            // glint://open?path=<percent-encoded absolute path>. Query form so
+        } else if url.scheme == GlintIdentity.urlScheme {
+            // <scheme>://open?path=<percent-encoded absolute path>. Query form so
             // slashes / special chars in the path survive URLComponents intact.
             guard let comps = URLComponents(url: url, resolvingAgainstBaseURL: false),
                   let raw = comps.queryItems?.first(where: { $0.name == "path" })?.value,

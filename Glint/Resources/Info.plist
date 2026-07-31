@@ -24,9 +24,9 @@
 	<key>CFBundlePackageType</key>
 	<string>APPL</string>
 	<key>CFBundleShortVersionString</key>
-	<string>dev</string>
+	<string>$(MARKETING_VERSION)</string>
 	<key>CFBundleVersion</key>
-	<string>1</string>
+	<string>$(CURRENT_PROJECT_VERSION)</string>
 	<key>LSMinimumSystemVersion</key>
 	<string>$(MACOSX_DEPLOYMENT_TARGET)</string>
 	<key>NSHumanReadableCopyright</key>
@@ -36,13 +36,8 @@
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
 	<key>SUEnableAutomaticChecks</key>
-	<true/>
-	<key>SUScheduledCheckInterval</key>
-	<integer>3600</integer>
-	<key>SUFeedURL</key>
-	<string>https://raw.githubusercontent.com/chenbstack/glint/main/appcast.xml</string>
-	<key>SUPublicEDKey</key>
-	<string>H8aS+y7VAi2SyldeYcNAHur5C4JqM4eLetjOXKYOaQc=</string>
+	<false/>
+	<!-- This local distribution intentionally has no upstream Sparkle feed. -->
 	<!-- Receiving paths: folders open as a workspace, plain files execute after
 	     a confirm, and glint:// URLs carry a path query param. Alternate rank so
 	     Glint never steals Finder's default — it only appears in "Open With". -->
@@ -77,10 +72,10 @@
 	<array>
 		<dict>
 			<key>CFBundleURLName</key>
-			<string>app.glint.Glint</string>
+			<string>com.ctrixin.glint</string>
 			<key>CFBundleURLSchemes</key>
 			<array>
-				<string>glint</string>
+				<string>ctrixin-glint</string>
 			</array>
 		</dict>
 	</array>

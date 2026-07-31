@@ -48,6 +48,9 @@ _design/
 # docs like external-pane-control.md are unaffected — ignore never untracks.
 docs/*.md
 
+# Agent handoff notes are local operational history, not release artifacts.
+.ai/agent-release-notes.md
+
 # Local-only marketing / social assets (cover shots, WeChat & 小红书 cards).
 # Generated for promo, not part of the app or release.
 cover-shot.png

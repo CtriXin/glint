@@ -41,7 +41,7 @@ final class AgentBridge {
     func start() {
         let home = FileManager.default.homeDirectoryForCurrentUser
         let runDir = home
-            .appendingPathComponent(".glint", isDirectory: true)
+            .appendingPathComponent(GlintIdentity.runtimeDirectory, isDirectory: true)
             .appendingPathComponent("run", isDirectory: true)
         do {
             // 0700 applies to every directory this call creates (including

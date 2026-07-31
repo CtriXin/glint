@@ -41,20 +41,28 @@ final class UpdaterController: NSObject, ObservableObject {
 
     private var cancellables: Set<AnyCancellable> = []
 
+    /// The fork uses a distinct app identity and is updated by its local build
+    /// lane, not the upstream Sparkle feed or its EdDSA key.
+    var updatesManagedLocally: Bool {
+        #if CTRIXIN_DISTRIBUTION
+        true
+        #else
+        false
+        #endif
+    }
+
     override init() {
         receiveBetaUpdates = UserDefaults.standard.bool(forKey: Self.receiveBetaUpdatesKey)
         super.init()
-        #if DEBUG
-        // Dev builds carry the placeholder 0.1.0 version (CI stamps the real
-        // one at release time), so the appcast always looks newer and Sparkle
-        // would offer to replace the dev binary with the production release.
-        // Never start the updater in Debug.
+        #if DEBUG || CTRIXIN_DISTRIBUTION
+        // Debug and the local fork do not consume the upstream appcast. A
+        // mismatch here could replace the separately signed local app.
         canCheckForUpdates = false
         #endif
     }
 
     func startDeferred() {
-        #if DEBUG
+        #if DEBUG || CTRIXIN_DISTRIBUTION
         canCheckForUpdates = false
         #else
         guard controller == nil else { return }
@@ -65,7 +73,7 @@ final class UpdaterController: NSObject, ObservableObject {
     }
 
     private func startIfNeeded() {
-        #if !DEBUG
+        #if !DEBUG && !CTRIXIN_DISTRIBUTION
         guard controller == nil else { return }
         controller = SPUStandardUpdaterController(
             startingUpdater: true,

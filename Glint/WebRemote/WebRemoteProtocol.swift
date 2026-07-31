@@ -358,7 +358,7 @@ protocol WebRemoteSecretStorage {
 struct WebRemoteKeychainStorage: WebRemoteSecretStorage {
     static let shared = WebRemoteKeychainStorage()
 
-    private let service = "app.glint.webremote"
+    private let service = GlintIdentity.webRemoteKeychainService
 
     private func baseQuery(_ account: String) -> [String: Any] {
         [

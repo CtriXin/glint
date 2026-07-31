@@ -428,6 +428,12 @@ private struct GeneralPane: View {
                 Toggle("", isOn: $store.middleClickClosesWorkspace)
                     .toggleStyle(.switch).labelsHidden()
             }
+            SettingsDivider()
+            SettingsRow("Middle-click closes tabs",
+                        subtitle: "Click a tab in the top bar or overflow list with the middle mouse button to close it. Same as “Close Tab”.") {
+                Toggle("", isOn: $store.middleClickClosesTabs)
+                    .toggleStyle(.switch).labelsHidden()
+            }
         }
 
         SettingsCard("New terminals") {
@@ -455,34 +461,44 @@ private struct UpdatesCard: View {
     @EnvironmentObject var store: WorkspaceStore
 
     var body: some View {
-        SettingsCard("Updates",
-                     footer: "Glint uses Sparkle to check the GitHub Releases feed and install updates in place.") {
-            SettingsRow("Check for updates automatically",
-                        subtitle: "Glint will look for new releases in the background.") {
-                Toggle("", isOn: $updater.automaticallyChecksForUpdates)
-                    .toggleStyle(.switch).labelsHidden()
-            }
-            SettingsDivider()
-            SettingsRow("Receive beta updates",
-                        subtitle: "Get pre-release builds early. Beta builds ship new work before it has fully settled.") {
-                Toggle("", isOn: $updater.receiveBetaUpdates)
-                    .toggleStyle(.switch).labelsHidden()
-            }
-            SettingsDivider()
-            SettingsRow("Check now",
-                        subtitle: "Manually look for a new release right now.") {
-                Button("Check") {
-                    // Sparkle attaches its update dialog to the key window.
-                    // The Settings sheet keeps the main window non-key, so
-                    // the dialog gets stuck behind it — dismiss the sheet
-                    // first, then kick off the check on the next runloop
-                    // tick so AppKit has unwound the sheet.
-                    store.settingsOpen = false
-                    DispatchQueue.main.async {
-                        updater.checkForUpdates()
-                    }
+        if updater.updatesManagedLocally {
+            SettingsCard("Updates",
+                         footer: "This local distribution does not use the upstream update feed.") {
+                SettingsRow("Managed locally",
+                            subtitle: "Build and install updates with scripts/build-ctrixin-release.sh so the local signing identity stays stable.") {
+                    StatusPill(label: "Local build", tone: .neutral)
                 }
-                .disabled(!updater.canCheckForUpdates)
+            }
+        } else {
+            SettingsCard("Updates",
+                         footer: "Glint uses Sparkle to check the GitHub Releases feed and install updates in place.") {
+                SettingsRow("Check for updates automatically",
+                            subtitle: "Glint will look for new releases in the background.") {
+                    Toggle("", isOn: $updater.automaticallyChecksForUpdates)
+                        .toggleStyle(.switch).labelsHidden()
+                }
+                SettingsDivider()
+                SettingsRow("Receive beta updates",
+                            subtitle: "Get pre-release builds early. Beta builds ship new work before it has fully settled.") {
+                    Toggle("", isOn: $updater.receiveBetaUpdates)
+                        .toggleStyle(.switch).labelsHidden()
+                }
+                SettingsDivider()
+                SettingsRow("Check now",
+                            subtitle: "Manually look for a new release right now.") {
+                    Button("Check") {
+                        // Sparkle attaches its update dialog to the key window.
+                        // The Settings sheet keeps the main window non-key, so
+                        // the dialog gets stuck behind it — dismiss the sheet
+                        // first, then kick off the check on the next runloop
+                        // tick so AppKit has unwound the sheet.
+                        store.settingsOpen = false
+                        DispatchQueue.main.async {
+                            updater.checkForUpdates()
+                        }
+                    }
+                    .disabled(!updater.canCheckForUpdates)
+                }
             }
         }
     }
@@ -2731,9 +2747,3 @@ private struct AboutPane: View {
         updater.receiveBetaUpdates ? .warn : .ok
     }
 }
-            SettingsDivider()
-            SettingsRow("Middle-click closes tabs",
-                        subtitle: "Click a tab in the top bar or overflow list with the middle mouse button to close it. Same as “Close Tab”.") {
-                Toggle("", isOn: $store.middleClickClosesTabs)
-                    .toggleStyle(.switch).labelsHidden()
-            }

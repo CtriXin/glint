@@ -39,7 +39,7 @@ final class ControlBridge {
     /// a dev Glint and a prod Glint don't collide on the same path.
     private static func socketPaths() -> (socket: String, token: String) {
         let runDir = FileManager.default.homeDirectoryForCurrentUser
-            .appendingPathComponent(".glint", isDirectory: true)
+            .appendingPathComponent(GlintIdentity.runtimeDirectory, isDirectory: true)
             .appendingPathComponent("run", isDirectory: true)
         #if DEBUG
         return (runDir.appendingPathComponent("control-debug.sock").path,
@@ -57,7 +57,7 @@ final class ControlBridge {
         guard !isRunning else { return }
         let home = FileManager.default.homeDirectoryForCurrentUser
         let runDir = home
-            .appendingPathComponent(".glint", isDirectory: true)
+            .appendingPathComponent(GlintIdentity.runtimeDirectory, isDirectory: true)
             .appendingPathComponent("run", isDirectory: true)
         do {
             try FileManager.default.createDirectory(

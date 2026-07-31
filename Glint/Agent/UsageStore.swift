@@ -333,7 +333,7 @@ final class UsageStore: ObservableObject {
         // never gets a chance to seed its own copy. Reading prod's domain
         // lets the bar show the freshest numbers prod last fetched instead
         // of staying empty until the rate limit window clears.
-        if let prodDomain = UserDefaults.standard.persistentDomain(forName: "app.glint.Glint"),
+        if let prodDomain = UserDefaults.standard.persistentDomain(forName: GlintIdentity.bundleIdentifier),
            let data = prodDomain[key] as? Data,
            let quota = try? JSONDecoder().decode(AgentQuota.self, from: data) {
             return quota.sanitized()
@@ -578,7 +578,7 @@ enum ClaudeUsageReader {
     /// invalidated the "Always Allow" grant and re-prompted. We now cache the
     /// token in a file instead (`tokenCacheURL`) — no ACL, no prompt across
     /// updates — and delete this item on sight.
-    private static let legacyGlintService = "app.glint.claude-usage"
+    private static let legacyGlintService = GlintIdentity.claudeUsageKeychainService
     /// File we copy the token into so steady-state launches read it WITHOUT any
     /// keychain prompt. AES-GCM encrypted (see `tokenKey`) and 0600 in our
     /// Application Support folder. The token is freely re-derivable from Claude
@@ -742,7 +742,7 @@ enum ClaudeUsageReader {
             for: .applicationSupportDirectory, in: .userDomainMask,
             appropriateFor: nil, create: false) else { return nil }
         return appSupport
-            .appendingPathComponent("Glint", isDirectory: true)
+            .appendingPathComponent(GlintIdentity.supportDirectory, isDirectory: true)
             .appendingPathComponent("claude-usage-token", isDirectory: false)
     }
 
@@ -782,7 +782,7 @@ enum ClaudeUsageReader {
     /// stored key without reintroducing the per-version-update prompt this whole
     /// change exists to remove (the ACL binds to our ad-hoc code signature).
     private static func tokenKey() -> SymmetricKey {
-        var seed = Data("app.glint.claude-usage.v1".utf8)
+        var seed = Data(GlintIdentity.claudeUsageCacheSalt.utf8)
         if let uuid = hardwareUUID() { seed.append(Data(uuid.utf8)) }
         return SymmetricKey(data: SHA256.hash(data: seed))
     }

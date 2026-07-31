@@ -1,6 +1,6 @@
 name: Glint
 options:
-  bundleIdPrefix: app.glint
+  bundleIdPrefix: com.ctrixin
   deploymentTarget:
     macOS: "14.0"
   createIntermediateGroups: true
@@ -39,11 +39,17 @@ targets:
       - Glint/Resources
     settings:
       base:
-        PRODUCT_NAME: Glint
-        PRODUCT_BUNDLE_IDENTIFIER: app.glint.Glint
+        PRODUCT_NAME: CtriXin Glint
+        # Keep the Swift module stable so upstream tests and `@testable import Glint`
+        # remain valid even though the installed app has a distinct name.
+        PRODUCT_MODULE_NAME: Glint
+        PRODUCT_BUNDLE_IDENTIFIER: com.ctrixin.glint
+        MARKETING_VERSION: 0.1.27-ctrixin.1
+        CURRENT_PROJECT_VERSION: 1
         INFOPLIST_FILE: Glint/Resources/Info.plist
         CODE_SIGN_ENTITLEMENTS: Glint/Resources/Glint.entitlements
         SWIFT_OBJC_BRIDGING_HEADER: Glint/App/Glint-Bridging-Header.h
+        SWIFT_ACTIVE_COMPILATION_CONDITIONS: CTRIXIN_DISTRIBUTION
         CODE_SIGN_STYLE: Automatic
         CODE_SIGN_IDENTITY: "-"
         DEVELOPMENT_TEAM: ""
@@ -71,13 +77,10 @@ targets:
           - "UserNotifications"
           - "-lc++"
       configs:
-        # Dev builds get a separate bundle id so macOS treats them as a
-        # different app: UserDefaults.standard reads from app.glint.Glint.dev,
-        # Persistence writes into the Glint-Dev dir, and toggles you flip
-        # in one build don't leak into the other. First dev launch copies
-        # the prod glint.* defaults across (see GlintApp.init).
+        # Dev builds remain distinct from the local release: their defaults
+        # and Application Support state cannot corrupt the installed app.
         Debug:
-          PRODUCT_BUNDLE_IDENTIFIER: app.glint.Glint.dev
+          PRODUCT_BUNDLE_IDENTIFIER: com.ctrixin.glint.dev
     dependencies:
       - framework: Vendor/GhosttyKit.xcframework
         embed: false
@@ -94,5 +97,5 @@ targets:
       - target: Glint
     settings:
       base:
-        PRODUCT_BUNDLE_IDENTIFIER: app.glint.GlintTests
+        PRODUCT_BUNDLE_IDENTIFIER: com.ctrixin.glint.tests
         GENERATE_INFOPLIST_FILE: YES

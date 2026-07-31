@@ -1,15 +1,38 @@
 import Foundation
 
-/// Per-build-flavor Application Support folder. Debug builds live in
-/// "Glint-Dev" (and, via the .dev bundle id, their own defaults domain) so a
-/// dev run can never corrupt the installed production app's state. The first
-/// dev launch seeds itself with a one-time copy of the production folder;
-/// after that the two diverge independently.
+/// Compile-time application identity. The local distribution must not share
+/// persistence, Keychain services, URL routing, or control sockets with an
+/// upstream installation that happens to run at the same time.
+enum GlintIdentity {
+    #if CTRIXIN_DISTRIBUTION
+    static let bundleIdentifier = "com.ctrixin.glint"
+    static let supportDirectory = "CtriXin-Glint"
+    static let debugSupportDirectory = "CtriXin-Glint-Dev"
+    static let urlScheme = "ctrixin-glint"
+    static let runtimeDirectory = ".ctrixin-glint"
+    static let claudeUsageKeychainService = "com.ctrixin.glint.claude-usage"
+    static let claudeUsageCacheSalt = "com.ctrixin.glint.claude-usage.v1"
+    static let webRemoteKeychainService = "com.ctrixin.glint.webremote"
+    #else
+    static let bundleIdentifier = "app.glint.Glint"
+    static let supportDirectory = "Glint"
+    static let debugSupportDirectory = "Glint-Dev"
+    static let urlScheme = "glint"
+    static let runtimeDirectory = ".glint"
+    static let claudeUsageKeychainService = "app.glint.claude-usage"
+    static let claudeUsageCacheSalt = "app.glint.claude-usage.v1"
+    static let webRemoteKeychainService = "app.glint.webremote"
+    #endif
+}
+
+/// Per-build-flavor Application Support folder. Debug builds live in their own
+/// directory and defaults domain so a dev run can never corrupt production.
 enum SupportDir {
     #if DEBUG
-    static let name = "Glint-Dev"
+    static let name = GlintIdentity.debugSupportDirectory
+    private static let productionName = GlintIdentity.supportDirectory
     #else
-    static let name = "Glint"
+    static let name = GlintIdentity.supportDirectory
     #endif
 
     static var url: URL? {
@@ -34,7 +57,7 @@ enum SupportDir {
             for: .applicationSupportDirectory, in: .userDomainMask,
             appropriateFor: nil, create: true) else { return }
         let dev = appSupport.appendingPathComponent(name, isDirectory: true)
-        let prod = appSupport.appendingPathComponent("Glint", isDirectory: true)
+        let prod = appSupport.appendingPathComponent(productionName, isDirectory: true)
         if !fm.fileExists(atPath: dev.path), fm.fileExists(atPath: prod.path) {
             try? fm.copyItem(at: prod, to: dev)
         }
