@@ -1321,6 +1321,13 @@ final class WorkspaceStore: ObservableObject {
         didSet { UserDefaults.standard.set(middleClickClosesWorkspace, forKey: "glint.middleClickClosesWorkspace") }
     }
 
+    /// Middle-click on a tab chip closes that tab. This intentionally has its
+    /// own setting: closing a tab and closing its whole workspace have different
+    /// consequences, even though both retain their existing busy-pane confirms.
+    @Published var middleClickClosesTabs: Bool = (UserDefaults.standard.object(forKey: "glint.middleClickClosesTabs") as? Bool) ?? true {
+        didSet { UserDefaults.standard.set(middleClickClosesTabs, forKey: "glint.middleClickClosesTabs") }
+    }
+
     /// Show the "Paste potentially unsafe text?" confirm dialog when the
     /// clipboard contains newlines or control characters. The underlying
     /// default (`glint.skipUnsafePasteConfirmation`) is inverted so the

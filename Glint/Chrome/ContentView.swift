@@ -889,6 +889,14 @@ private struct TabChip: View {
                     onReorderEnd()
                 }
         )
+        // The transparent AppKit catcher preserves the immediate left-click
+        // select and drag-reorder gestures while giving mouse users a native
+        // middle-click tab close path.
+        .overlay {
+            if !isEditing, ws.tabs.count > 1, store.middleClickClosesTabs {
+                MiddleClickCatcher { store.closeTab(tab.id) }
+            }
+        }
     }
 
     private func startEditing() {
@@ -1386,6 +1394,11 @@ private struct TabOverflowRow: View {
         .buttonStyle(.plain)
         .onHover { hover = $0 }
         .animation(.easeOut(duration: 0.12), value: hover)
+        .overlay {
+            if ws.tabs.count > 1, store.middleClickClosesTabs {
+                MiddleClickCatcher { store.closeTab(tab.id) }
+            }
+        }
     }
 
     /// Fixed-size slot mirroring TabChip's: status dot at rest, close (×)

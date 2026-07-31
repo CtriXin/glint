@@ -638,6 +638,7 @@ private struct WorkspaceCard: View {
 
     @State private var isEditing = false
     @State private var draftName = ""
+    @State private var confirmingArchivedDelete = false
     @FocusState private var nameFieldFocused: Bool
     /// Hover affordance — drives the 1pt scale + soft shadow that makes
     /// cards feel "liftable" without being a heavy hover state. Driven
@@ -718,9 +719,25 @@ private struct WorkspaceCard: View {
                     .padding(4)
                     .accessibilityHidden(true)
             } else if archived {
-                archivedCornerMarker
-                    .padding(4)
-                    .accessibilityHidden(true)
+                if isHovered {
+                    Button {
+                        confirmingArchivedDelete = true
+                    } label: {
+                        Image(systemName: "xmark.circle.fill")
+                            .font(.system(size: 14, weight: .semibold))
+                            .foregroundStyle(Theme.text2)
+                            .frame(width: 22, height: 22)
+                            .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .help("Delete archived workspace")
+                    .accessibilityLabel("Delete archived workspace")
+                    .padding(3)
+                } else {
+                    archivedCornerMarker
+                        .padding(4)
+                        .accessibilityHidden(true)
+                }
             }
         }
         .scaleEffect(isHovered ? 1.005 : 1.0, anchor: .center)
@@ -781,6 +798,14 @@ private struct WorkspaceCard: View {
                     store.deleteWorkspace(ws.id)
                 }
             }
+        }
+        .alert("Delete archived workspace?", isPresented: $confirmingArchivedDelete) {
+            Button("Delete Workspace", role: .destructive) {
+                store.deleteWorkspace(ws.id)
+            }
+            Button("Cancel", role: .cancel) {}
+        } message: {
+            Text("This permanently deletes the archived workspace and its saved scrollback.")
         }
         // VoiceOver: the card is one tappable button. Name = workspace
         // name (verbatim — user data); value = the same status line the

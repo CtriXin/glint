@@ -2731,3 +2731,9 @@ private struct AboutPane: View {
         updater.receiveBetaUpdates ? .warn : .ok
     }
 }
+            SettingsDivider()
+            SettingsRow("Middle-click closes tabs",
+                        subtitle: "Click a tab in the top bar or overflow list with the middle mouse button to close it. Same as “Close Tab”.") {
+                Toggle("", isOn: $store.middleClickClosesTabs)
+                    .toggleStyle(.switch).labelsHidden()
+            }
