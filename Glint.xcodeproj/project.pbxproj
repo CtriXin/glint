@@ -142,7 +142,7 @@
 		376568363043C189904E4E0A /* Localizable.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = Localizable.xcstrings; sourceTree = "<group>"; };
 		38E3B385162995D0F1F5B72D /* CodexHome.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodexHome.swift; sourceTree = "<group>"; };
 		39F54835E4A44EC88236EFBE /* GitService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitService.swift; sourceTree = "<group>"; };
-		3E2E78BBA22734DD486C760B /* CtriXin Glint.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "CtriXin Glint.app"; sourceTree = BUILT_PRODUCTS_DIR; };
+		3E2E78BBA22734DD486C760B /* CtriTerm.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = "CtriTerm.app"; sourceTree = BUILT_PRODUCTS_DIR; };
 		3FAD36B4BDB22AB47353C569 /* SyntaxHighlighterTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SyntaxHighlighterTests.swift; sourceTree = "<group>"; };
 		407B3A9D15F4B9E613DA1CF8 /* ReleaseNotes.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReleaseNotes.swift; sourceTree = "<group>"; };
 		41DDB9C7B5A277B7924270A3 /* PaneAgentState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaneAgentState.swift; sourceTree = "<group>"; };
@@ -458,7 +458,7 @@
 		F0DEBFD467843DF4F582D172 /* Products */ = {
 			isa = PBXGroup;
 			children = (
-				3E2E78BBA22734DD486C760B /* CtriXin Glint.app */,
+				3E2E78BBA22734DD486C760B /* CtriTerm.app */,
 				E94AB23640CA1E6007F8B2B4 /* GlintTests.xctest */,
 			);
 			name = Products;
@@ -484,7 +484,7 @@
 				C48F9D3C512A0ABE8369D0F4 /* Sparkle */,
 			);
 			productName = Glint;
-			productReference = 3E2E78BBA22734DD486C760B /* CtriXin Glint.app */;
+			productReference = 3E2E78BBA22734DD486C760B /* CtriTerm.app */;
 			productType = "com.apple.product-type.application";
 		};
 		900A6C235CB23B81714F0821 /* GlintTests */ = {
@@ -684,7 +684,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.ctrixin.glint.tests;
 				SDKROOT = macosx;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/CtriXin Glint.app/Contents/MacOS/CtriXin Glint";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/CtriTerm.app/Contents/MacOS/CtriTerm";
 			};
 			name = Debug;
 		};
@@ -731,7 +731,7 @@
 				MARKETING_VERSION = "0.1.27-ctrixin.1";
 				PRODUCT_BUNDLE_IDENTIFIER = com.ctrixin.glint;
 				PRODUCT_MODULE_NAME = Glint;
-				PRODUCT_NAME = "CtriXin Glint";
+				PRODUCT_NAME = "CtriTerm";
 				SDKROOT = macosx;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = CTRIXIN_DISTRIBUTION;
 				SWIFT_OBJC_BRIDGING_HEADER = "Glint/App/Glint-Bridging-Header.h";
@@ -817,7 +817,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.ctrixin.glint.tests;
 				SDKROOT = macosx;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/CtriXin Glint.app/Contents/MacOS/CtriXin Glint";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/CtriTerm.app/Contents/MacOS/CtriTerm";
 			};
 			name = Release;
 		};
@@ -864,7 +864,7 @@
 				MARKETING_VERSION = "0.1.27-ctrixin.1";
 				PRODUCT_BUNDLE_IDENTIFIER = com.ctrixin.glint.dev;
 				PRODUCT_MODULE_NAME = Glint;
-				PRODUCT_NAME = "CtriXin Glint";
+				PRODUCT_NAME = "CtriTerm";
 				SDKROOT = macosx;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = "DEBUG CTRIXIN_DISTRIBUTION";
 				SWIFT_OBJC_BRIDGING_HEADER = "Glint/App/Glint-Bridging-Header.h";

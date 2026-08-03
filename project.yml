@@ -39,7 +39,7 @@ targets:
       - Glint/Resources
     settings:
       base:
-        PRODUCT_NAME: CtriXin Glint
+        PRODUCT_NAME: CtriTerm
         # Keep the Swift module stable so upstream tests and `@testable import Glint`
         # remain valid even though the installed app has a distinct name.
         PRODUCT_MODULE_NAME: Glint

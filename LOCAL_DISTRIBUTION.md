@@ -1,6 +1,6 @@
 # Local Distribution
 
-This fork installs alongside upstream Glint as **CtriXin Glint**.
+This fork installs alongside upstream Glint as **CtriTerm**.
 
 ## Identity and update boundary
 
@@ -16,28 +16,30 @@ identity and distribution changes. Keep future upstreamable fixes as separate
 commits on top of `upstream/main`; open an upstream issue or pull request from
 those commits without including the files that define this distribution.
 
-## Daily use: use only CtriXin Glint
+## Daily use: use only CtriTerm
 
-The installed local app is `/Applications/CtriXin Glint.app`:
+CtriTerm is the local app's user-facing name. The currently installed
+`/Applications/CtriXin Glint.app` (`0.1.27-ctrixin.367`) remains in place until
+the first CtriTerm package is notarized. That first package performs a one-time
+app-bundle-name migration to `/Applications/CtriTerm.app` while retaining the
+same internal identity and all existing local state.
 
-- Current installed version: `0.1.27-ctrixin.367` (`202607311005`).
-- Launch **CtriXin Glint** from Spotlight, Finder, or
-  `open -a "CtriXin Glint"`.
+After that migration:
+
+- Launch **CtriTerm** from Spotlight, Finder, or `open -a "CtriTerm"`.
 - Use it as the sole day-to-day Glint installation. It is safe to leave the
   upstream `/Applications/Glint.app` installed for comparison, but do not open
   it or use its in-app hook installer during normal work.
-- The two apps do not share Glint state: CtriXin uses its own Application
-  Support, Keychain, URL scheme, agent socket, control socket, and usage cache.
-  Existing terminal projects and shell configuration are still ordinary shared
-  files, as they should be.
-- CtriXin has its own persistent workspaces. Open a folder or create a
-  workspace once in CtriXin, then use that app for its subsequent tabs, splits,
-  and workspaces. New tabs (`Cmd-T`), splits (`Cmd-D` / `Cmd-Shift-D`), and
-  workspaces (`Cmd-N`) inherit the focused terminal's directory when known.
+- CtriTerm uses its own Application Support, Keychain, URL scheme, agent
+  socket, control socket, and usage cache. Existing terminal projects and
+  shell configuration are still ordinary shared files, as they should be.
+- CtriTerm retains its persistent workspaces across the display-name migration.
+  New tabs (`Cmd-T`), splits (`Cmd-D` / `Cmd-Shift-D`), and workspaces (`Cmd-N`)
+  inherit the focused terminal's directory when known.
 
-Do not uninstall, rename, or change the Bundle ID of CtriXin Glint between
-updates. The stable application identity is what preserves separate state and
-prevents recurring Keychain prompts.
+After the one-time migration, do not rename the app bundle or change the
+Bundle ID between updates. The stable application identity is what preserves
+separate state and prevents recurring Keychain prompts.
 
 ## Signed release
 
@@ -88,18 +90,18 @@ replace upstream `Glint.app`; both apps may remain installed.
 
 Every future local build should use this same package identity and signing
 certificate. Choose a version higher than the installed version, create a new
-archive, quit CtriXin Glint, and replace only its app bundle:
+archive, quit CtriTerm, and replace only its app bundle:
 
 ```bash
 VERSION=0.1.27-ctrixin.368 \
 DEVELOPMENT_TEAM=2HJP9YYL3H \
 scripts/build-ctrixin-release.sh
 
-ditto "build/CtriXin-Glint-0.1.27-ctrixin.368.xcarchive/Products/Applications/CtriXin Glint.app" \
-  "/Applications/CtriXin Glint.app"
+ditto "build/CtriTerm-0.1.27-ctrixin.368.xcarchive/Products/Applications/CtriTerm.app" \
+  "/Applications/CtriTerm.app"
 ```
 
-Then verify `CtriXin Glint` in Finder's Get Info or Settings > About. Keep the
+Then verify `CtriTerm` in Finder's Get Info or Settings > About. Keep the
 previous archive until the new build has opened successfully, so rollback is a
 single app-bundle replacement. This is deliberately a manual local update
 channel: upstream Sparkle is disabled and must stay disabled. The current

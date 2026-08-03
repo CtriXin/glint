@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Build a local CtriXin Glint release with a stable Developer ID identity.
+# Build a local CtriTerm release with a stable Developer ID identity.
 #
 # Required:
 #   DEVELOPMENT_TEAM       Apple Team ID used by the local Developer ID cert
@@ -41,7 +41,7 @@ fi
 
 VERSION="${VERSION:-0.1.27-ctrixin.$(git rev-list --count HEAD)}"
 BUILD_NUMBER="${BUILD_NUMBER:-$(date -u +%Y%m%d%H%M)}"
-ARCHIVE_PATH="${ARCHIVE_PATH:-$ROOT/build/CtriXin-Glint-${VERSION}.xcarchive}"
+ARCHIVE_PATH="${ARCHIVE_PATH:-$ROOT/build/CtriTerm-${VERSION}.xcarchive}"
 
 if [[ -e "$ARCHIVE_PATH" ]]; then
   echo "ERROR: archive already exists: $ARCHIVE_PATH" >&2
@@ -63,7 +63,7 @@ xcodebuild \
   ONLY_ACTIVE_ARCH=YES \
   archive
 
-APP="$ARCHIVE_PATH/Products/Applications/CtriXin Glint.app"
+APP="$ARCHIVE_PATH/Products/Applications/CtriTerm.app"
 if [[ ! -d "$APP" ]]; then
   echo "ERROR: archive did not contain the expected app: $APP" >&2
   exit 1
