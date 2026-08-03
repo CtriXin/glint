@@ -109,6 +109,21 @@ channel: upstream Sparkle is disabled and must stay disabled. The current
 `.369` build is Developer ID signed, notarized, and stapled; use
 `NOTARY_KEYCHAIN_PROFILE=ctrixin-notary` for every future distributed build.
 
+### Restore after a system rebuild
+
+The notarized, directly installable `.369` ZIP is backed up outside Git at:
+
+```text
+~/Library/Mobile Documents/com~apple~CloudDocs/CtriTerm-Releases/CtriTerm-0.1.27-ctrixin.369-macos-arm64-notarized.zip
+```
+
+After macOS is rebuilt, unzip it and copy `CtriTerm.app` to `/Applications`.
+The backup was unpacked and re-validated for both its Developer ID signature and
+stapled notarization ticket. Git preserves source and the pushed local branch,
+but not this archive, local workspace state, or login-Keychain credentials. To
+restore workspaces too, back up `~/Library/Application Support/CtriXin-Glint/`;
+CLI account credentials may need reauthorization on a fresh macOS Keychain.
+
 ## Agent hook boundary
 
 The local build uses separate bridge and external-control sockets under
