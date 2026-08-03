@@ -19,11 +19,11 @@ those commits without including the files that define this distribution.
 ## Daily use: use only CtriTerm
 
 CtriTerm is the local app's user-facing name and is installed at
-`/Applications/CtriTerm.app` (`0.1.27-ctrixin.368`). It replaced the prior
+`/Applications/CtriTerm.app` (`0.1.27-ctrixin.369`). It replaced the prior
 `CtriXin Glint.app` while retaining the same internal identity and all existing
-local state. This first migration was explicitly installed before notarization;
-the app is Developer ID signed, but a future package still needs notarization
-before distribution to another Mac.
+local state. The installed `.369` release is Developer ID signed, Apple
+notarized, and stapled, so it passes normal Gatekeeper verification on another
+Mac.
 
 - Launch **CtriTerm** from Spotlight, Finder, or `open -a "CtriTerm"`.
 - Use it as the sole day-to-day Glint installation. It is safe to leave the
@@ -93,11 +93,12 @@ certificate. Choose a version higher than the installed version, create a new
 archive, quit CtriTerm, and replace only its app bundle:
 
 ```bash
-VERSION=0.1.27-ctrixin.368 \
+VERSION=0.1.27-ctrixin.370 \
 DEVELOPMENT_TEAM=2HJP9YYL3H \
+NOTARY_KEYCHAIN_PROFILE=ctrixin-notary \
 scripts/build-ctrixin-release.sh
 
-ditto "build/CtriTerm-0.1.27-ctrixin.368.xcarchive/Products/Applications/CtriTerm.app" \
+ditto "build/CtriTerm-0.1.27-ctrixin.370.xcarchive/Products/Applications/CtriTerm.app" \
   "/Applications/CtriTerm.app"
 ```
 
@@ -105,8 +106,8 @@ Then verify `CtriTerm` in Finder's Get Info or Settings > About. Keep the
 previous archive until the new build has opened successfully, so rollback is a
 single app-bundle replacement. This is deliberately a manual local update
 channel: upstream Sparkle is disabled and must stay disabled. The current
-build is Developer ID signed but not notarized; notarize future packages with
-`NOTARY_KEYCHAIN_PROFILE` before distributing them to another Mac.
+`.369` build is Developer ID signed, notarized, and stapled; use
+`NOTARY_KEYCHAIN_PROFILE=ctrixin-notary` for every future distributed build.
 
 ## Agent hook boundary
 
