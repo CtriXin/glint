@@ -78,9 +78,10 @@ xcrun notarytool history --keychain-profile ctrixin-notary
 ```
 
 Then build with `NOTARY_KEYCHAIN_PROFILE=ctrixin-notary`. The release script
-submits the app, waits for Apple's result, staples the ticket, and validates it.
-The script never accepts or writes certificate exports, Apple IDs, app-specific
-passwords, API keys, or Sparkle private keys.
+re-signs Sparkle's embedded updater helpers with the same Developer ID and
+secure timestamps, submits the app, waits for Apple's result, staples the
+ticket, and validates it. The script never accepts or writes certificate
+exports, Apple IDs, app-specific passwords, API keys, or Sparkle private keys.
 
 Install the resulting `.app` from the printed archive path manually. Do not
 replace upstream `Glint.app`; both apps may remain installed.

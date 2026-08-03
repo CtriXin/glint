@@ -69,6 +69,32 @@ if [[ ! -d "$APP" ]]; then
   exit 1
 fi
 
+# Xcode signs the Sparkle framework itself but leaves its helper executable,
+# updater app, and XPC services with Sparkle's upstream signature. Apple
+# notarization validates each nested executable, so re-sign bottom-up with this
+# distribution's Developer ID and a secure timestamp before sealing the app.
+SPARKLE="$APP/Contents/Frameworks/Sparkle.framework"
+if [[ -d "$SPARKLE" ]]; then
+  for NESTED in \
+    "$SPARKLE/Versions/Current/Autoupdate" \
+    "$SPARKLE/Versions/Current/XPCServices/Downloader.xpc" \
+    "$SPARKLE/Versions/Current/XPCServices/Installer.xpc" \
+    "$SPARKLE/Versions/Current/Updater.app"
+  do
+    if [[ ! -e "$NESTED" ]]; then
+      echo "ERROR: expected Sparkle component is missing: $NESTED" >&2
+      exit 1
+    fi
+    codesign --force --options runtime --timestamp --sign "$CODESIGN_IDENTITY" "$NESTED"
+  done
+  codesign --force --options runtime --timestamp --sign "$CODESIGN_IDENTITY" "$SPARKLE"
+  # Re-seal the outer app after changing its embedded framework while retaining
+  # the same hardened-runtime entitlements Xcode applied during the archive.
+  codesign --force --options runtime --timestamp \
+    --entitlements Glint/Resources/Glint.entitlements \
+    --sign "$CODESIGN_IDENTITY" "$APP"
+fi
+
 scripts/verify-ghostty-resources.sh "$APP"
 codesign --verify --deep --strict --verbose=2 "$APP"
 codesign -dvv "$APP"
