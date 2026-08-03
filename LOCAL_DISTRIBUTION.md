@@ -18,13 +18,12 @@ those commits without including the files that define this distribution.
 
 ## Daily use: use only CtriTerm
 
-CtriTerm is the local app's user-facing name. The currently installed
-`/Applications/CtriXin Glint.app` (`0.1.27-ctrixin.367`) remains in place until
-the first CtriTerm package is notarized. That first package performs a one-time
-app-bundle-name migration to `/Applications/CtriTerm.app` while retaining the
-same internal identity and all existing local state.
-
-After that migration:
+CtriTerm is the local app's user-facing name and is installed at
+`/Applications/CtriTerm.app` (`0.1.27-ctrixin.368`). It replaced the prior
+`CtriXin Glint.app` while retaining the same internal identity and all existing
+local state. This first migration was explicitly installed before notarization;
+the app is Developer ID signed, but a future package still needs notarization
+before distribution to another Mac.
 
 - Launch **CtriTerm** from Spotlight, Finder, or `open -a "CtriTerm"`.
 - Use it as the sole day-to-day Glint installation. It is safe to leave the
