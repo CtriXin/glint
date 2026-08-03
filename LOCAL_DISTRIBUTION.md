@@ -63,9 +63,23 @@ scripts/build-ctrixin-release.sh
 ```
 
 `NOTARY_KEYCHAIN_PROFILE` is optional for a signed local build but required to
-notarize and staple it for a normal Gatekeeper installation. The script never
-accepts or writes certificate exports, Apple IDs, app-specific passwords, or
-Sparkle private keys.
+notarize and staple it for a normal Gatekeeper installation. Create it once in
+the login Keychain, preferably from an Apple Developer API key (never commit
+or share the `.p8` file):
+
+```bash
+xcrun notarytool store-credentials ctrixin-notary \
+  --key "/secure/path/AuthKey_<key-id>.p8" \
+  --key-id "<key-id>" \
+  --issuer "<issuer-uuid>"
+
+xcrun notarytool history --keychain-profile ctrixin-notary
+```
+
+Then build with `NOTARY_KEYCHAIN_PROFILE=ctrixin-notary`. The release script
+submits the app, waits for Apple's result, staples the ticket, and validates it.
+The script never accepts or writes certificate exports, Apple IDs, app-specific
+passwords, API keys, or Sparkle private keys.
 
 Install the resulting `.app` from the printed archive path manually. Do not
 replace upstream `Glint.app`; both apps may remain installed.
