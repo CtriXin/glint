@@ -52,6 +52,15 @@ enum ReleaseNotes {
     /// "发版「更新内容」" for the release-time workflow.
     static let all: [ReleaseNote] = [
         ReleaseNote(
+            version: "0.1.27-ctrixin.380",
+            en: [
+                "Fixed a crash that ended the whole session. macOS parents background UI services (the text-input cursor, the data detector) into the app's window; when it retired one of them while a popover, sheet, or menu was opening, every terminal in the window went with it. Those failures are now contained."
+            ],
+            zh: [
+                "修复了会终结整个会话的闪退。macOS 会把后台 UI 服务（文本输入光标、数据检测器）挂进应用窗口，一旦它在 popover、sheet 或菜单弹出的瞬间回收其中之一，窗口里的所有终端都会随之消失。此类故障现已被隔离。"
+            ]
+        ),
+        ReleaseNote(
             version: "0.1.27-beta.1",
             en: [
                 "Control your terminals from a browser: open Glint's web remote on your phone or another machine on the same network, see live output, and type into any pane. Traffic is end-to-end encrypted and gated by an access key you can rotate at any time.",

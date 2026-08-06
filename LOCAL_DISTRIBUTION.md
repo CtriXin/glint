@@ -19,13 +19,13 @@ those commits without including the files that define this distribution.
 ## Daily use: use only CtriTerm
 
 CtriTerm is the local app's user-facing name and is installed at
-`/Applications/CtriTerm.app` (`0.1.27-ctrixin.378`). It replaced the prior
+`/Applications/CtriTerm.app` (`0.1.27-ctrixin.380`). It replaced the prior
 `CtriXin Glint.app` while retaining the same internal identity and all existing
-local state. The installed `.378` release is Developer ID signed, Apple
+local state. The installed `.380` release is Developer ID signed, Apple
 notarized, and stapled, so it passes normal Gatekeeper verification on another
 Mac.
 
-`.378` carries the child-window exception guard: macOS retiring a background
+`.380` carries the child-window exception guard: macOS retiring a background
 view service while a popover, sheet, or menu is opening no longer takes the
 whole app down. See `chenbstack/glint#98` for the upstream report.
 
@@ -90,28 +90,50 @@ exports, Apple IDs, app-specific passwords, API keys, or Sparkle private keys.
 Install the resulting `.app` from the printed archive path manually. Do not
 replace upstream `Glint.app`; both apps may remain installed.
 
-### Repeatable local update procedure
+### Every iteration ships a GitHub release
 
-Every future local build should use this same package identity and signing
-certificate. Choose a version higher than the installed version, create a new
-archive, quit CtriTerm, and replace only its app bundle:
+This is the normal path for **every** update, not just milestone ones. An
+iteration is not finished until it is tagged and published — a build that only
+exists in `/Applications` cannot be reinstalled, verified, or rolled back to.
 
-```bash
-VERSION=0.1.27-ctrixin.370 \
-DEVELOPMENT_TEAM=2HJP9YYL3H \
-NOTARY_KEYCHAIN_PROFILE=ctrixin-notary \
-scripts/build-ctrixin-release.sh
+1. **Author the What's New entry first.** Add one `ReleaseNote` at the top of
+   `ReleaseNotes.all` in `Glint/App/ReleaseNotes.swift`, with both `en` and `zh`.
+   Its `version` must be the version that is about to ship, and the default
+   version is `0.1.27-ctrixin.$(git rev-list --count HEAD)` — so author the
+   entry and commit it, and the count *after* that commit is the number to
+   write. Never pre-write an entry for a version you are not about to tag.
+   `-ctrixin.N` sorts as a pre-release, so these entries roll up under the
+   `0.1.27` base exactly like upstream betas do.
+2. **Build, notarize, install.** Version defaults from the commit count, so no
+   `VERSION=` override is normally needed:
 
-ditto "build/CtriTerm-0.1.27-ctrixin.370.xcarchive/Products/Applications/CtriTerm.app" \
-  "/Applications/CtriTerm.app"
-```
+   ```bash
+   DEVELOPMENT_TEAM=2HJP9YYL3H \
+   NOTARY_KEYCHAIN_PROFILE=ctrixin-notary \
+   scripts/build-ctrixin-release.sh
 
-Then verify `CtriTerm` in Finder's Get Info or Settings > About. Keep the
-previous archive until the new build has opened successfully, so rollback is a
-single app-bundle replacement. This is deliberately a manual local update
-channel: upstream Sparkle is disabled and must stay disabled. The current
-`.378` build is Developer ID signed, notarized, and stapled; use
-`NOTARY_KEYCHAIN_PROFILE=ctrixin-notary` for every future distributed build.
+   ditto "build/CtriTerm-<version>.xcarchive/Products/Applications/CtriTerm.app" \
+     "/Applications/CtriTerm.app"
+   ```
+
+   Quit CtriTerm before replacing its bundle.
+3. **Publish.** Package and attach the notarized ZIP plus its checksum:
+
+   ```bash
+   scripts/package-public-release.sh \
+     "build/CtriTerm-<version>.xcarchive/Products/Applications/CtriTerm.app" <version>
+
+   gh release create "ctriterm-v<version>" \
+     dist/CtriTerm-<version>-macos-arm64-notarized.zip \
+     dist/CtriTerm-<version>-macos-arm64-notarized.zip.sha256
+   ```
+
+No separate local backup of the previous bundle is kept: the published release
+and the `build/` archive are the rollback path. This is deliberately a manual
+update channel — upstream Sparkle is disabled and must stay disabled. Use
+`NOTARY_KEYCHAIN_PROFILE=ctrixin-notary` for every distributed build.
+
+Then verify `CtriTerm` in Finder's Get Info or Settings ▸ About.
 
 ### Restore after a system rebuild
 
