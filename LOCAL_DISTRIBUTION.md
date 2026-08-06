@@ -19,11 +19,15 @@ those commits without including the files that define this distribution.
 ## Daily use: use only CtriTerm
 
 CtriTerm is the local app's user-facing name and is installed at
-`/Applications/CtriTerm.app` (`0.1.27-ctrixin.369`). It replaced the prior
+`/Applications/CtriTerm.app` (`0.1.27-ctrixin.378`). It replaced the prior
 `CtriXin Glint.app` while retaining the same internal identity and all existing
-local state. The installed `.369` release is Developer ID signed, Apple
+local state. The installed `.378` release is Developer ID signed, Apple
 notarized, and stapled, so it passes normal Gatekeeper verification on another
 Mac.
+
+`.378` carries the child-window exception guard: macOS retiring a background
+view service while a popover, sheet, or menu is opening no longer takes the
+whole app down. See `chenbstack/glint#98` for the upstream report.
 
 - Launch **CtriTerm** from Spotlight, Finder, or `open -a "CtriTerm"`.
 - Use it as the sole day-to-day Glint installation. It is safe to leave the
@@ -106,7 +110,7 @@ Then verify `CtriTerm` in Finder's Get Info or Settings > About. Keep the
 previous archive until the new build has opened successfully, so rollback is a
 single app-bundle replacement. This is deliberately a manual local update
 channel: upstream Sparkle is disabled and must stay disabled. The current
-`.369` build is Developer ID signed, notarized, and stapled; use
+`.378` build is Developer ID signed, notarized, and stapled; use
 `NOTARY_KEYCHAIN_PROFILE=ctrixin-notary` for every future distributed build.
 
 ### Restore after a system rebuild
