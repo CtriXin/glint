@@ -551,13 +551,22 @@ private struct TerminalPane: View {
 
     var body: some View {
         SettingsCard("Ghostty config",
-                     footer: "When enabled, Glint uses your Ghostty config for terminal colors, font, cursor, scrollback, transparency, and blur. Glint still keeps layout settings required by its floating chrome.") {
+                     footer: "When enabled, Glint uses your Ghostty config for terminal colors, font, cursor, and scrollback. Transparency stays off unless enabled separately, so Glint chrome remains stable.") {
             SettingsRow("Use Ghostty config",
                         subtitle: store.terminalUseGhosttyConfig
                         ? "Terminal appearance is loaded from Ghostty's config files."
                         : "Use Glint's terminal appearance controls below.") {
                 Toggle("", isOn: $store.terminalUseGhosttyConfig)
                     .toggleStyle(.switch).labelsHidden()
+            }
+            SettingsDivider()
+            SettingsRow("Use Ghostty transparency",
+                        subtitle: store.terminalUseGhosttyConfig
+                        ? "Honor background-opacity and background-blur for the terminal pane only."
+                        : "Requires Use Ghostty config.") {
+                Toggle("", isOn: $store.terminalUseGhosttyTransparency)
+                    .toggleStyle(.switch).labelsHidden()
+                    .disabled(!store.terminalUseGhosttyConfig)
             }
             SettingsDivider()
             SettingsRow("Reload Ghostty config",
