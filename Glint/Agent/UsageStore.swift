@@ -27,10 +27,11 @@ struct AgentQuota: Equatable, Codable {
 /// Polls per-agent usage/rate-limit data and republishes it for the sidebar.
 ///
 /// Data sources are asymmetric on purpose:
-///   • Codex (ChatGPT login) is read live from the same `/backend-api/wham/usage`
+///   • Codex (global ChatGPT OAuth login) is read live from the same `/backend-api/wham/usage`
 ///     endpoint the Codex TUI polls, authorizing with the OAuth token in
 ///     `~/.codex/auth.json` — so the numbers refresh even with no session
-///     running (`CodexLiveReader`). When that's unavailable (API-key login,
+///     running (`CodexLiveReader`). mmf key+url sessions do not expose a separate
+///     usage surface here. When that's unavailable (API-key login,
 ///     expired token, network/shape failure) it falls back to the `rate_limits`
 ///     block Codex persists into every session rollout JSONL under
 ///     `~/.codex/sessions/…`, which needs no auth but only updates while Codex

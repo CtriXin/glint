@@ -374,7 +374,7 @@ private struct QuotaSection: View {
                              color: Self.claudeColor, warn: Self.warnColor)
                 }
                 if let codex {
-                    QuotaRow(name: "Codex",
+                    QuotaRow(name: "Codex OAuth",
                              iconAsset: MascotAsset.codex(for: nil),
                              quota: codex,
                              color: Self.codexColor, warn: Self.warnColor)

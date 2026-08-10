@@ -772,13 +772,24 @@
         }
       }
     },
-    "Display Codex's 5-hour and weekly limits in the sidebar." : {
+    "Display global Codex OAuth 5-hour and weekly limits from ~/.codex; mmf key+url sessions do not have a separate usage counter." : {
       "extractionState" : "manual",
       "localizations" : {
         "zh-Hans" : {
           "stringUnit" : {
             "state" : "translated",
-            "value" : "在侧边栏显示 Codex 的 5 小时和每周额度。"
+            "value" : "显示 ~/.codex 的全局 Codex OAuth 5 小时和每周额度；mmf key+url 会话没有单独的用量计数。"
+          }
+        }
+      }
+    },
+    "Show OAuth usage in sidebar" : {
+      "extractionState" : "manual",
+      "localizations" : {
+        "zh-Hans" : {
+          "stringUnit" : {
+            "state" : "translated",
+            "value" : "在侧栏显示 OAuth 额度"
           }
         }
       }

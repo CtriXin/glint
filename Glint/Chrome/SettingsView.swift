@@ -717,8 +717,8 @@ private struct AgentsPane: View {
                 }
             }
             SettingsDivider()
-            SettingsRow("Show usage in sidebar",
-                        subtitle: "Display Codex's 5-hour and weekly limits in the sidebar.") {
+            SettingsRow("Show OAuth usage in sidebar",
+                        subtitle: "Display global Codex OAuth 5-hour and weekly limits from ~/.codex; mmf key+url sessions do not have a separate usage counter.") {
                 Toggle("", isOn: $usage.codexEnabled)
                     .toggleStyle(.switch).labelsHidden()
             }
