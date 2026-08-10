@@ -35,15 +35,21 @@ final class ControlBridge {
 
     private init() {}
 
-    /// Canonical socket + token paths. Debug builds use separate filenames so
-    /// a dev Glint and a prod Glint don't collide on the same path.
+    /// Canonical socket + token paths. Debug builds include their bundle ID so
+    /// independent dogfood apps do not collide on the same control route.
     private static func socketPaths() -> (socket: String, token: String) {
         let runDir = FileManager.default.homeDirectoryForCurrentUser
             .appendingPathComponent(".glint", isDirectory: true)
             .appendingPathComponent("run", isDirectory: true)
         #if DEBUG
-        return (runDir.appendingPathComponent("control-debug.sock").path,
-                runDir.appendingPathComponent("control-debug.token").path)
+        let suffix = (Bundle.main.bundleIdentifier ?? "debug")
+            .replacingOccurrences(
+                of: #"[^A-Za-z0-9._-]+"#,
+                with: "-",
+                options: .regularExpression
+            )
+        return (runDir.appendingPathComponent("control-debug-\(suffix).sock").path,
+                runDir.appendingPathComponent("control-debug-\(suffix).token").path)
         #else
         return (runDir.appendingPathComponent("control.sock").path,
                 runDir.appendingPathComponent("control.token").path)

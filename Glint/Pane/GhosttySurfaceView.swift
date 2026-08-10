@@ -185,6 +185,10 @@ final class GhosttySurfaceView: NSView, NSTextInputClient {
     /// occlusion transition, neither of which a same-size workspace switch-back
     /// produces. Cleared the moment that forced frame is drawn.
     private var pendingVisibleRedraw = false
+    /// A fresh Ghostty surface can accept its first PTY write after AppKit's
+    /// first layout callback. Keep one delayed retry so that write is not
+    /// stranded behind an earlier empty-frame draw on macOS beta compositors.
+    private var visibleRedrawRetryGeneration = 0
 
     /// Opt-in tracing for the blank-pane-on-switch investigation. Launch the dev
     /// build with `GLINT_LOG_VISIBLE=1` to see attach / forced-redraw events.
@@ -202,6 +206,9 @@ final class GhosttySurfaceView: NSView, NSTextInputClient {
 
     override func viewDidMoveToWindow() {
         super.viewDidMoveToWindow()
+        // Invalidate a retry queued by an earlier attach before handling the
+        // new window association (including the detached case below).
+        visibleRedrawRetryGeneration &+= 1
         // Observe the window moving between screens so ghostty's
         // CVDisplayLink can re-lock to the new display's vsync; without
         // this the link stays on whatever display it was created on and
@@ -294,6 +301,30 @@ final class GhosttySurfaceView: NSView, NSTextInputClient {
             // been laid out.
             self.pushOcclusionToGhostty()
             self.syncSurfaceSize(pointsSize: self.bounds.size)
+            self.queueVisibleRedrawRetry()
+        }
+    }
+
+    /// Retry exactly once after the first layout turn. `ghostty_surface_draw`
+    /// is edge-triggered, so this covers a prompt that arrives just after the
+    /// initial draw without turning an idle pane into a polling render loop.
+    private func queueVisibleRedrawRetry() {
+        visibleRedrawRetryGeneration &+= 1
+        let generation = visibleRedrawRetryGeneration
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
+            guard let self,
+                  self.visibleRedrawRetryGeneration == generation,
+                  self.window != nil,
+                  let s = self.surface,
+                  self.bounds.width > 0,
+                  self.bounds.height > 0
+            else { return }
+            self.pushOcclusionToGhostty()
+            self.syncSurfaceSize(pointsSize: self.bounds.size)
+            ghostty_surface_draw(s)
+            if self.logVisible {
+                NSLog("[glint.visible] delayed redraw pane=\(self.paneKey ?? "?")")
+            }
         }
     }
 

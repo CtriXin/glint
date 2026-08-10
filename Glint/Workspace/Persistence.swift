@@ -7,7 +7,11 @@ import Foundation
 /// after that the two diverge independently.
 enum SupportDir {
     #if DEBUG
-    static let name = "Glint-Dev"
+    static var name: String {
+        let raw = Bundle.main.object(forInfoDictionaryKey: "GLINTSupportDirName") as? String
+        guard let raw, !raw.isEmpty, !raw.hasPrefix("$(") else { return "Glint-Dev" }
+        return raw
+    }
     #else
     static let name = "Glint"
     #endif

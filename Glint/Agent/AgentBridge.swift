@@ -59,7 +59,13 @@ final class AgentBridge {
         chmod(runDir.path, 0o700)
 
         #if DEBUG
-        let path = runDir.appendingPathComponent("agent-debug.sock").path
+        let socketSuffix = (Bundle.main.bundleIdentifier ?? "debug")
+            .replacingOccurrences(
+                of: #"[^A-Za-z0-9._-]+"#,
+                with: "-",
+                options: .regularExpression
+            )
+        let path = runDir.appendingPathComponent("agent-debug-\(socketSuffix).sock").path
         #else
         let path = runDir.appendingPathComponent("agent.sock").path
         #endif
