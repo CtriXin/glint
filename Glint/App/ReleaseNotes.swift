@@ -52,6 +52,17 @@ enum ReleaseNotes {
     /// "发版「更新内容」" for the release-time workflow.
     static let all: [ReleaseNote] = [
         ReleaseNote(
+            version: "0.1.27-ctrixin.387",
+            en: [
+                "Under the hood, the app's state model now updates views field-by-field instead of all at once. Switching workspaces, tabs, and panes, live agent status, and Settings toggles are more targeted, so less of the window re-renders than before — quieter background work and snappier interaction.",
+                "Also rolls up the upstream v0.1.27-beta.2 fixes already in .383: steadier Web Remote on phones and no white flash when closing a split."
+            ],
+            zh: [
+                "底层状态模型改为按字段更新视图，而不是一处变动就刷新整块。切换工作区、标签页、窗格，实时 Agent 状态，以及设置开关都更精准，整窗重绘更少 —— 后台更安静，交互更跟手。",
+                "同时包含已随 .383 合入的上游 v0.1.27-beta.2 修复：手机端网页远程端更稳定、关闭分屏不再白屏。"
+            ]
+        ),
+        ReleaseNote(
             version: "0.1.27-ctrixin.383",
             en: [
                 "Web Remote is steadier on phones: two-finger scrolling works in terminal panes, rapid pane switches no longer bounce back, and stale connections automatically reconnect after network or page interruptions.",
