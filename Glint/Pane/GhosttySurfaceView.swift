@@ -2794,6 +2794,10 @@ enum ScrollbackArchive {
     /// read_text) — one-time migration to the colored `.ansi` format.
     static func prune(keeping ids: Set<String>) {
         queue.async {
+            // Drop hash-cache entries for panes that no longer exist, so the
+            // dict can't grow unbounded as workspaces/panes come and go.
+            // `delete()` clears a single entry; this catches the long tail.
+            lastGridHash = lastGridHash.filter { ids.contains($0.key) }
             guard let dir,
                   let files = try? FileManager.default.contentsOfDirectory(
                     at: dir, includingPropertiesForKeys: nil) else { return }
