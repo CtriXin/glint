@@ -8,7 +8,7 @@ import AppKit
 // All git work goes through `store.git` (Plan B: out-of-band subprocess).
 
 struct NewWorkspaceSheet: View {
-    @EnvironmentObject var store: WorkspaceStore
+    @Environment(WorkspaceStore.self) private var store
 
     var body: some View {
         WorktreePane()
@@ -22,7 +22,7 @@ struct NewWorkspaceSheet: View {
 // MARK: - Worktree pane (the only flow)
 
 private struct WorktreePane: View {
-    @EnvironmentObject var store: WorkspaceStore
+    @Environment(WorkspaceStore.self) private var store
     @EnvironmentObject var codexHomes: CodexHomeStore
 
     @State private var repo = ""
@@ -362,7 +362,7 @@ private struct SheetHeader: View {
 }
 
 private struct SheetFooter: View {
-    @EnvironmentObject var store: WorkspaceStore
+    @Environment(WorkspaceStore.self) private var store
     let note: LocalizedStringKey
     let primary: LocalizedStringKey
     let primaryEnabled: Bool

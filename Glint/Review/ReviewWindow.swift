@@ -161,7 +161,7 @@ struct ReviewView: View {
     // that re-evaluates `.preferredColorScheme(Theme.colorScheme)` below, which
     // is what lets adaptive colors (Color.secondary) and Theme colors update
     // live instead of being frozen at open time.
-    @EnvironmentObject var store: WorkspaceStore
+    @Environment(WorkspaceStore.self) private var store
     // Manual split: HSplitView ignores idealWidth and lands on a 50/50 default.
     // A self-managed divider gives a narrow persisted default that drags freely
     // up to 60% of the window.
@@ -1566,11 +1566,11 @@ final class ReviewWindowController: NSObject, NSWindowDelegate {
     private var window: NSWindow?
     private var model: ReviewModel?   // strong ref for the window's lifetime
     private var skipNextKeyReload = false
-    /// Lives for the duration the window is open. Re-applies NSWindow.appearance
-    /// whenever the store bumps `themeRevision`, so a mid-session theme switch
-    /// doesn't leave borderless-menu popups (rendered by AppKit, not SwiftUI)
-    /// resolving label colors against the open-time appearance.
-    private var themeCancellable: AnyCancellable?
+    /// Bumped on windowWillClose so any armed `armThemeObservation` chain from
+    /// the prior open stops re-arming once themeRevision next changes. present()
+    /// starts a fresh chain with the new generation. Replaces the old Combine
+    /// `themeCancellable` now that the store is `@Observable`.
+    private var themeObservationGeneration = 0
 
     func present(repo: String, title: String, subdir: String? = nil,
                  scopes: [DiffScope], store: WorkspaceStore,
@@ -1580,22 +1580,19 @@ final class ReviewWindowController: NSObject, NSWindowDelegate {
         self.model = model
         let root = ReviewView(model: model)
             .frame(minWidth: 780, minHeight: 480)
-            .environmentObject(store)
+            .environment(store)
 
         let w = window ?? makeWindow()
         w.title = title
-        // The sink fires synchronously with the current value on subscribe
-        // (@Published behavior) — but only on `w`, the local NSWindow we just
-        // created. Capture `w` directly in the closure so the synchronous
-        // first fire applies the open-time appearance BEFORE `self.window`
-        // has been assigned below. Previously this closed over `self?.window`
-        // which was still nil on the first present() of the session, so the
-        // initial open used AppKit's system appearance instead of the user's
-        // Theme pick. Subsequent opens reused the cached `window` ivar and
-        // looked correct, masking the bug.
-        themeCancellable = store.$themeRevision.sink { [weak w] _ in
-            w?.appearance = NSAppearance(named: Theme.current.isDark ? .darkAqua : .aqua)
-        }
+        // Apply the open-time appearance synchronously, then arm
+        // withObservationTracking to re-apply it whenever the store bumps
+        // `themeRevision` (a mid-session theme switch) so borderless-menu
+        // popups (rendered by AppKit, not SwiftUI) keep resolving label
+        // colors against the current theme. Capture `w` directly so the
+        // initial apply lands on the local NSWindow we just created BEFORE
+        // `self.window` is assigned below.
+        w.appearance = NSAppearance(named: Theme.current.isDark ? .darkAqua : .aqua)
+        armThemeObservation(store: store, window: w)
         // Zero the hosting view's safe-area at the AppKit layer instead of with
         // SwiftUI's `.ignoresSafeArea()`. The modifier makes SwiftUI re-coordinate
         // the titlebar inset on every layout pass, which flickers while resizing
@@ -1623,8 +1620,9 @@ final class ReviewWindowController: NSObject, NSWindowDelegate {
         // (and any future drag in content). The hidden-but-present titlebar strip
         // at the top still moves the window.
         w.isMovableByWindowBackground = false
-        // Appearance is owned by themeCancellable in present() — don't seed
-        // here, otherwise it'd flicker the wrong theme for one frame.
+        // Appearance is applied in present() (and re-applied on theme change
+        // via armThemeObservation) — don't seed here, otherwise it'd flicker
+        // the wrong theme for one frame.
         w.isReleasedWhenClosed = false         // reuse the shell across opens
         // Persist & restore window position/size across launches. AppKit writes
         // the frame to UserDefaults whenever the window moves/resizes; on first
@@ -1637,10 +1635,29 @@ final class ReviewWindowController: NSObject, NSWindowDelegate {
 
     func windowWillClose(_ notification: Notification) {
         // Drop the model so its (now hidden) state isn't kept alive; the window
-        // shell is reused on the next open. Drop the theme sink too — present()
-        // resubscribes when the window comes back.
+        // shell is reused on the next open. Invalidate any armed theme
+        // observation chain — present() re-arms when the window comes back.
         model = nil
-        themeCancellable = nil
+        themeObservationGeneration += 1
+    }
+
+    /// Re-arm observation of the store's `themeRevision` so a mid-session theme
+    /// switch re-applies this window's AppKit appearance. Each call registers
+    /// one-shot tracking; the onChange handler re-applies and re-arms while the
+    /// captured generation still matches, so closing the window (which bumps
+    /// `themeObservationGeneration`) lets dangling chains die after one fire.
+    private func armThemeObservation(store: WorkspaceStore, window: NSWindow) {
+        let generation = themeObservationGeneration
+        withObservationTracking {
+            _ = store.themeRevision
+        } onChange: { [weak self, weak window] in
+            DispatchQueue.main.async {
+                guard let self, let window,
+                      self.themeObservationGeneration == generation else { return }
+                window.appearance = NSAppearance(named: Theme.current.isDark ? .darkAqua : .aqua)
+                self.armThemeObservation(store: store, window: window)
+            }
+        }
     }
 
     func windowDidBecomeKey(_ notification: Notification) {

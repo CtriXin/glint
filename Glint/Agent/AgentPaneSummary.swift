@@ -257,7 +257,7 @@ private struct PaneSummaryHover: ViewModifier {
             }
             .popover(isPresented: $show, arrowEdge: arrowEdge) {
                 PaneSummaryPopover(infos: infos)
-                    .environmentObject(store)
+                    .environment(store)
             }
     }
 }

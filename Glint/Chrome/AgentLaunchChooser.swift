@@ -7,7 +7,7 @@ import AppKit
 /// Esc, or picking nothing cancels. Same glass language as `CommandPalette`,
 /// tuned to a compact Spotlight-style launcher.
 struct AgentLaunchChooser: View {
-    @EnvironmentObject var store: WorkspaceStore
+    @Environment(WorkspaceStore.self) private var store
     @EnvironmentObject var codexHomes: CodexHomeStore
     let intent: NewTerminalIntent
 

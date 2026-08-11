@@ -10,7 +10,7 @@ import AppKit
 /// Visual style: restrained, left-aligned, dense — Linear/Arc release-notes
 /// language rather than a celebratory system-update banner.
 struct WhatsNewView: View {
-    @EnvironmentObject var store: WorkspaceStore
+    @Environment(WorkspaceStore.self) private var store
     let notes: [ReleaseNote]
 
     @FocusState private var focused: Bool

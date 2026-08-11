@@ -2,7 +2,7 @@ import SwiftUI
 import AppKit
 
 struct ContentView: View {
-    @EnvironmentObject var store: WorkspaceStore
+    @Environment(WorkspaceStore.self) private var store
 
     /// Photos-style chrome (glass on): no header band — the terminal runs to
     /// the top of the window and the toolbar floats over it as glass islands.
@@ -25,6 +25,7 @@ struct ContentView: View {
     @State private var fieldDismissMonitor: Any?
 
     var body: some View {
+        @Bindable var store = store
         HStack(spacing: 0) {
             if !store.sidebarCollapsed {
                 // 亮 / 暗两套 sidebar 表面:
@@ -204,11 +205,11 @@ struct ContentView: View {
         }
         .sheet(isPresented: $store.settingsOpen) {
             GlintSettingsView()
-                .environmentObject(store)
+                .environment(store)
         }
         .sheet(isPresented: $store.newWorkspaceSheetOpen) {
             NewWorkspaceSheet()
-                .environmentObject(store)
+                .environment(store)
         }
         .confirmationDialog(
             worktreeDeleteTitle,
@@ -376,7 +377,7 @@ private struct SidebarEdgeDivider: View {
 // MARK: - Custom toolbar (in-content, not NSToolbar)
 
 struct ToolbarHeader: View {
-    @EnvironmentObject var store: WorkspaceStore
+    @Environment(WorkspaceStore.self) private var store
     /// Traffic lights disappear in full screen, so the 78pt gutter we
     /// reserve for them (when the sidebar is collapsed) must collapse too
     /// or the toolbar starts with a dead zone.
@@ -522,7 +523,7 @@ struct ToolbarHeader: View {
 /// same style language as the workspace switcher. The active tab is never
 /// folded away.
 struct TabBar: View {
-    @EnvironmentObject var store: WorkspaceStore
+    @Environment(WorkspaceStore.self) private var store
     /// TabID of the chip currently mid-drag (nil otherwise). Used to lift
     /// the dragged chip above its neighbours and skip it in the pointer
     /// hit-test below.
@@ -737,7 +738,7 @@ private struct TabBarPlan: Equatable {
 /// that shows the agent status dot, swapping to a close (×) button on hover
 /// (Safari-style). Active chips get a faint fill and an accent underline.
 private struct TabChip: View {
-    @EnvironmentObject var store: WorkspaceStore
+    @Environment(WorkspaceStore.self) private var store
     /// Intentionally unread: installing the object subscribes this view to
     /// pane-activity invalidation, so the `store.agentSummary`/`tabAgentStatus`
     /// reads below re-render on status changes. Do not remove as "unused".
@@ -1115,7 +1116,7 @@ private struct StatusBeaconDot: NSViewRepresentable {
 /// frame — only running tabs animate. Falls back to an SF Symbol / glyph for
 /// plain shells and other tools.
 struct TabIcon: View {
-    @EnvironmentObject var store: WorkspaceStore
+    @Environment(WorkspaceStore.self) private var store
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let kind: WorkspaceIconKind
     let size: CGFloat
@@ -1184,7 +1185,7 @@ struct TabIcon: View {
 /// Clicking opens a popover listing the folded tabs — same glass styling as
 /// the workspace switcher's dropdown, with select-on-click and hover-close.
 private struct TabOverflowChip: View {
-    @EnvironmentObject var store: WorkspaceStore
+    @Environment(WorkspaceStore.self) private var store
     /// Intentionally unread: installing the object subscribes this view to
     /// pane-activity invalidation, so the `store.agentSummary`/`tabAgentStatus`
     /// reads below re-render on status changes. Do not remove as "unused".
@@ -1220,7 +1221,7 @@ private struct TabOverflowChip: View {
         .animation(.easeOut(duration: 0.15), value: isOpen)
         .popover(isPresented: $isOpen, arrowEdge: .bottom) {
             TabOverflowPopover(ws: ws, tabs: tabs) { isOpen = false }
-                .environmentObject(store)
+                .environment(store)
                 .environmentObject(activity)
         }
     }
@@ -1235,7 +1236,7 @@ private struct TabOverflowChip: View {
 }
 
 private struct TabOverflowPopover: View {
-    @EnvironmentObject var store: WorkspaceStore
+    @Environment(WorkspaceStore.self) private var store
     let ws: Workspace
     let tabs: [WorkspaceTab]
     let dismiss: () -> Void
@@ -1250,7 +1251,7 @@ private struct TabOverflowPopover: View {
                             store.selectTab(tab.id)
                             dismiss()
                         }
-                        .environmentObject(store)
+                        .environment(store)
                     }
                 }
                 .padding(.horizontal, 6)
@@ -1341,7 +1342,7 @@ private struct TabOverflowPopover: View {
 /// line (colored like the workspace switcher's rows), and a trailing slot
 /// that swaps the breathing status dot for a close (×) on hover.
 private struct TabOverflowRow: View {
-    @EnvironmentObject var store: WorkspaceStore
+    @Environment(WorkspaceStore.self) private var store
     /// Intentionally unread: installing the object subscribes this view to
     /// pane-activity invalidation, so the `store.agentSummary`/`tabAgentStatus`
     /// reads below re-render on status changes. Do not remove as "unused".
@@ -1473,7 +1474,7 @@ private struct TabOverflowRow: View {
 /// hover well as `ToolbarIconButton`, no inner accent pill. Opens the
 /// lightweight git popover; reflects the currently shown terminal.
 private struct HeaderGitButton: View {
-    @EnvironmentObject var store: WorkspaceStore
+    @Environment(WorkspaceStore.self) private var store
     let ws: Workspace
     @State private var open = false
     @State private var hovering = false
@@ -1533,7 +1534,7 @@ private struct HeaderGitButton: View {
         .help(isWT ? "Worktree git status" : "Git status")
         .popover(isPresented: $open, arrowEdge: .bottom) {
             GitStatusPopover(ws: ws, close: { open = false })
-                .environmentObject(store)
+                .environment(store)
         }
     }
 }
@@ -1572,7 +1573,7 @@ private struct ToolbarIconButton: View {
 /// "Glint" wordmark in SF Pro semibold. The spark carries a cool gradient
 /// + soft halo so it reads as the app's signature without needing an asset.
 struct GlintBrandMark: View {
-    @EnvironmentObject var store: WorkspaceStore
+    @Environment(WorkspaceStore.self) private var store
     var body: some View {
         HStack(spacing: 7) {
             Image(store.appIconPreset.headerLogoAsset)
@@ -1661,7 +1662,7 @@ struct SparkShape: Shape {
 /// icons in the rows, status pulse dot per workspace, hover highlight, and
 /// a chevron that animates between closed/open.
 private struct WorkspaceSwitcher: View {
-    @EnvironmentObject var store: WorkspaceStore
+    @Environment(WorkspaceStore.self) private var store
     /// Intentionally unread: installing the object subscribes this view to
     /// pane-activity invalidation, so the `store.agentSummary`/`tabAgentStatus`
     /// reads below re-render on status changes. Do not remove as "unused".
@@ -1715,7 +1716,7 @@ private struct WorkspaceSwitcher: View {
         .onHover { hover = $0 }
         .popover(isPresented: $isOpen, arrowEdge: .bottom) {
             WorkspaceSwitcherPopover { isOpen = false }
-                .environmentObject(store)
+                .environment(store)
                 .environmentObject(activity)
         }
     }
@@ -1739,7 +1740,7 @@ private struct WorkspaceSwitcher: View {
 }
 
 private struct WorkspaceSwitcherPopover: View {
-    @EnvironmentObject var store: WorkspaceStore
+    @Environment(WorkspaceStore.self) private var store
     let dismiss: () -> Void
 
     var body: some View {
@@ -1756,7 +1757,7 @@ private struct WorkspaceSwitcherPopover: View {
                                 dismiss()
                             }
                         )
-                        .environmentObject(store)
+                        .environment(store)
                     }
                 }
                 .padding(.horizontal, 6)
@@ -1842,7 +1843,7 @@ private struct WorkspaceSwitcherPopover: View {
 }
 
 private struct WorkspaceSwitcherRow: View {
-    @EnvironmentObject var store: WorkspaceStore
+    @Environment(WorkspaceStore.self) private var store
     /// Intentionally unread: installing the object subscribes this view to
     /// pane-activity invalidation, so the `store.agentSummary`/`tabAgentStatus`
     /// reads below re-render on status changes. Do not remove as "unused".
@@ -1969,7 +1970,7 @@ private struct WorkspaceSwitcherRow: View {
 /// asset, SF Symbol, or text glyph) at an arbitrary size. Used by the
 /// switcher's pill (16pt) and popover rows (26pt).
 private struct WorkspaceMicroIcon: View {
-    @EnvironmentObject var store: WorkspaceStore
+    @Environment(WorkspaceStore.self) private var store
     let ws: Workspace
     let kind: WorkspaceIconKind
     let size: CGFloat

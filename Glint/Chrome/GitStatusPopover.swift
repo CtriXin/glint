@@ -8,7 +8,7 @@ import AppKit
 // workspace whose focused pane cwd is inside a git repo.
 
 struct GitStatusPopover: View {
-    @EnvironmentObject var store: WorkspaceStore
+    @Environment(WorkspaceStore.self) private var store
     let ws: Workspace
     var close: () -> Void = {}
 

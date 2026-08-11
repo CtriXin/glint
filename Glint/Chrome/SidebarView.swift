@@ -4,7 +4,7 @@ import ImageIO
 import UniformTypeIdentifiers
 
 struct SidebarView: View {
-    @EnvironmentObject var store: WorkspaceStore
+    @Environment(WorkspaceStore.self) private var store
     /// Intentionally unread: installing the object subscribes this view to
     /// pane-activity invalidation, so the `store.agentSummary`/`tabAgentStatus`
     /// reads below re-render on status changes. Do not remove as "unused".
@@ -390,7 +390,7 @@ struct SidebarView: View {
 /// Renders nothing when no agent has data, so the divider+New Workspace sit
 /// flush as before.
 private struct QuotaSection: View {
-    @EnvironmentObject var store: WorkspaceStore
+    @Environment(WorkspaceStore.self) private var store
     let claude: AgentQuota?
     let codexHomes: [CodexSidebarQuota]
 
@@ -611,7 +611,7 @@ private struct CardFrameKey: PreferenceKey {
 }
 
 private struct WorkspaceCard: View {
-    @EnvironmentObject var store: WorkspaceStore
+    @Environment(WorkspaceStore.self) private var store
     /// Intentionally unread: installing the object subscribes this view to
     /// pane-activity invalidation, so the `store.agentSummary`/`tabAgentStatus`
     /// reads below re-render on status changes. Do not remove as "unused".
@@ -1365,7 +1365,7 @@ enum MascotAsset {
 ///   • Tap squish — scale dip + spring rebound when the icon is clicked.
 private struct ClaudeMascotIcon: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
-    @EnvironmentObject var store: WorkspaceStore
+    @Environment(WorkspaceStore.self) private var store
     let status: PaneAgentStatus?
     @State private var celebrateScale: CGFloat = 1.0
     @State private var tapScale: CGFloat = 1.0

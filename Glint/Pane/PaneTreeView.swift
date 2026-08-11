@@ -124,7 +124,7 @@ struct PaneTreeView: View {
 /// line with an invisible 9pt drag handle floating over it. Dragging writes
 /// the ratio back to the store, so it persists with the rest of the tree.
 private struct SplitContainer: View {
-    @EnvironmentObject var store: WorkspaceStore
+    @Environment(WorkspaceStore.self) private var store
     let direction: SplitDirection
     let ratio: CGFloat
     let path: [Bool]

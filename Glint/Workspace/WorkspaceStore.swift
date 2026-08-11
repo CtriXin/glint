@@ -1,4 +1,5 @@
 import SwiftUI
+import Observation
 import Combine
 import AppKit
 import Darwin
@@ -560,11 +561,21 @@ extension Workspace {
 // MARK: - Store
 
 @MainActor
-final class WorkspaceStore: ObservableObject {
+@Observable
+final class WorkspaceStore {
 
-    @Published var workspaces: [Workspace]
-    @Published var selectedWorkspaceID: UUID?
-    @Published var sidebarCollapsed: Bool
+    var workspaces: [Workspace] {
+        didSet {
+            schedulePersist()
+            scheduleGitWatcherSync()
+        }
+    }
+    var selectedWorkspaceID: UUID? {
+        didSet { schedulePersist() }
+    }
+    var sidebarCollapsed: Bool {
+        didSet { schedulePersist() }
+    }
     /// High-frequency, non-persistent pane state is published separately so
     /// agent hooks and foreground-process changes don't invalidate every view
     /// that observes the workspace model (including the terminal subtree).
@@ -587,7 +598,7 @@ final class WorkspaceStore: ObservableObject {
     /// Drives the command-palette overlay. Toggled by the toolbar's ⌘
     /// button and the ⌘⇧P global shortcut. Mutually exclusive with the agent
     /// chooser — opening one dismisses the other so they can't stack.
-    @Published var commandPaletteOpen: Bool = false {
+    var commandPaletteOpen: Bool = false {
         didSet { if commandPaletteOpen { agentChooserIntent = nil } }
     }
 
@@ -596,7 +607,7 @@ final class WorkspaceStore: ObservableObject {
     /// when `promptAgentOnNew` is on; cleared by `resolveAgentChooser`. Pops the
     /// command palette closed so the two overlays never appear at once (e.g. ⌘T
     /// while the palette is open).
-    @Published var agentChooserIntent: NewTerminalIntent? {
+    var agentChooserIntent: NewTerminalIntent? {
         didSet { if agentChooserIntent != nil { commandPaletteOpen = false } }
     }
 
@@ -604,36 +615,36 @@ final class WorkspaceStore: ObservableObject {
     /// Settings inside the window (not as a separate scene) so it
     /// inherits the workspace context and feels of-the-app rather than
     /// of-the-OS.
-    @Published var settingsOpen: Bool = false
+    var settingsOpen: Bool = false
 
     /// True while a workspace (sidebar) or tab (tab bar) rename field is the
     /// focused first responder. Gates the click-away dismissal monitor in
     /// `ContentView` so it resigns *only* during an actual rename — the sidebar
     /// search and other text fields stay on macOS's default focus behavior.
-    @Published var isRenaming: Bool = false
+    var isRenaming: Bool = false
 
     /// Hand-authored "What's New" notes to show in the centered card overlay.
     /// Non-empty ⇒ the card is up (one entry on manual open, possibly several
     /// when catching up across skipped versions). See `ReleaseNotes.swift`.
-    @Published var whatsNewNotes: [ReleaseNote] = []
+    var whatsNewNotes: [ReleaseNote] = []
     /// One-shot guard so the launch evaluation (driven from `ContentView`'s
     /// `.onAppear`, which can fire more than once) only runs the first time.
     private var whatsNewEvaluated = false
     private static let whatsNewVersionKey = "glint.lastWhatsNewVersion"
 
     /// Drives the New Worktree sheet (the worktree-creation window).
-    @Published var newWorkspaceSheetOpen: Bool = false
+    var newWorkspaceSheetOpen: Bool = false
     /// Optional repo path to pre-fill the sheet with (e.g. "New Worktree from
     /// Here" on a specific card), overriding the current-workspace guess.
-    @Published var newWorkspaceRepoHint: String? = nil
+    var newWorkspaceRepoHint: String? = nil
     /// Workspace whose worktree the user asked to delete. Drives a single shared
     /// confirm dialog (hosted in ContentView) so every entry point — card menu,
     /// command palette — funnels through the same "this deletes files" gate.
-    @Published var pendingWorktreeDelete: UUID? = nil
+    var pendingWorktreeDelete: UUID? = nil
     /// Set when a worktree was created but "bring uncommitted changes" failed to
     /// copy them in. Drives a one-shot warning alert (hosted in ContentView) so
     /// the failure isn't silent — the changes are untouched in the base checkout.
-    @Published var worktreeCarryFailed: Bool = false
+    var worktreeCarryFailed: Bool = false
     func openNewWorkspace(repoHint: String? = nil) {
         newWorkspaceRepoHint = repoHint
         newWorkspaceSheetOpen = true
@@ -642,7 +653,7 @@ final class WorkspaceStore: ObservableObject {
     /// Lightweight git status per workspace, keyed by workspace id. Refreshed by
     /// filesystem/command events plus a slow fallback. NON-persistent — it's live
     /// state, recomputed each launch, never written to state.json.
-    @Published var gitStatuses: [UUID: GitStatus] = [:]
+    var gitStatuses: [UUID: GitStatus] = [:]
     /// Serializes `git status` per workspace while retaining one coalesced
     /// follow-up request. A bare in-flight Set dropped an invalidation when a
     /// trailing event landed while the previous async status/log pair was still
@@ -668,7 +679,7 @@ final class WorkspaceStore: ObservableObject {
     /// observes this and pulls focus into its search field. Using a tick
     /// (vs. a `Bool` toggle) avoids the bool's "already true" no-op when
     /// the user fires the shortcut twice without an intervening blur.
-    @Published var sidebarSearchFocusTick: Int = 0
+    var sidebarSearchFocusTick: Int = 0
     func focusSidebarSearch() {
         // Auto-expand sidebar if collapsed — otherwise ⌘F appears to
         // do nothing because the search field isn't on screen.
@@ -741,7 +752,7 @@ final class WorkspaceStore: ObservableObject {
     /// Preferred UI language identifier. `"system"` follows the OS; any
     /// other value is a BCP-47 tag (e.g. `"en"`, `"zh-Hans"`). Persists
     /// across launches via UserDefaults so the choice survives quits.
-    @Published var preferredLanguage: String = UserDefaults.standard.string(forKey: "glint.preferredLanguage") ?? "system" {
+    var preferredLanguage: String = UserDefaults.standard.string(forKey: "glint.preferredLanguage") ?? "system" {
         didSet {
             UserDefaults.standard.set(preferredLanguage, forKey: "glint.preferredLanguage")
         }
@@ -755,7 +766,7 @@ final class WorkspaceStore: ObservableObject {
     /// trimmed 值匹配,如果绑定值不 trim,选中态会对不上(老 UserDefaults 里
     /// 留下 " SF Mono " 会让下拉同时出 Recommended 与 Current 两条)。CJK 路径
     /// 已经这么做,这里保持对称。
-    @Published var terminalFontFamily: String = {
+    var terminalFontFamily: String = {
         let raw = (UserDefaults.standard.string(forKey: "glint.terminalFontFamily") ?? "")
             .trimmingCharacters(in: .whitespacesAndNewlines)
         return raw.isEmpty ? "SF Mono" : raw
@@ -770,7 +781,7 @@ final class WorkspaceStore: ObservableObject {
             GhosttyManager.shared.reloadConfig()
         }
     }
-    @Published var terminalFontSize: Double = {
+    var terminalFontSize: Double = {
         let v = UserDefaults.standard.double(forKey: "glint.terminalFontSize")
         return v == 0 ? 13 : v
     }() {
@@ -782,7 +793,7 @@ final class WorkspaceStore: ObservableObject {
     /// 整个终端文本以字体的 Bold 变体渲染。开 → 注入 `font-style = Bold`(同时把
     /// `font-style-bold` 也定到 Bold,避免 ANSI bold 退化到合成描边)。家族里没有
     /// Bold 切片时 ghostty 会回落到 regular,不会换家族。
-    @Published var terminalFontBold: Bool = (UserDefaults.standard.object(forKey: "glint.terminalFontBold") as? Bool) ?? false {
+    var terminalFontBold: Bool = (UserDefaults.standard.object(forKey: "glint.terminalFontBold") as? Bool) ?? false {
         didSet {
             UserDefaults.standard.set(terminalFontBold, forKey: "glint.terminalFontBold")
             GhosttyManager.shared.reloadConfig()
@@ -794,13 +805,13 @@ final class WorkspaceStore: ObservableObject {
     ///
     /// 读写都规范化为「去首尾空白」的形式 —— 下游 FontCatalog 的 Current 行
     /// 用 trimmed 值匹配,如果绑定值不 trim,选中态会对不上。
-    @Published var terminalCJKFontFamily: String = (UserDefaults.standard.string(forKey: "glint.terminalCJKFontFamily") ?? "")
+    var terminalCJKFontFamily: String = (UserDefaults.standard.string(forKey: "glint.terminalCJKFontFamily") ?? "")
         .trimmingCharacters(in: .whitespacesAndNewlines)
     {
         didSet {
             let canonical = terminalCJKFontFamily.trimmingCharacters(in: .whitespacesAndNewlines)
             if canonical != terminalCJKFontFamily {
-                // 反向写回:避免 didSet 递归调用,只在确实需要时改 @Published 值。
+                // 反向写回:避免 didSet 递归调用,只在确实需要时改 值。
                 terminalCJKFontFamily = canonical
                 return
             }
@@ -809,19 +820,19 @@ final class WorkspaceStore: ObservableObject {
         }
     }
     /// One of `block` / `bar` / `underline`, matching ghostty's `cursor-style`.
-    @Published var terminalCursorStyle: String = UserDefaults.standard.string(forKey: "glint.terminalCursorStyle") ?? "block" {
+    var terminalCursorStyle: String = UserDefaults.standard.string(forKey: "glint.terminalCursorStyle") ?? "block" {
         didSet {
             UserDefaults.standard.set(terminalCursorStyle, forKey: "glint.terminalCursorStyle")
             GhosttyManager.shared.reloadConfig()
         }
     }
-    @Published var terminalCursorBlink: Bool = (UserDefaults.standard.object(forKey: "glint.terminalCursorBlink") as? Bool) ?? true {
+    var terminalCursorBlink: Bool = (UserDefaults.standard.object(forKey: "glint.terminalCursorBlink") as? Bool) ?? true {
         didSet {
             UserDefaults.standard.set(terminalCursorBlink, forKey: "glint.terminalCursorBlink")
             GhosttyManager.shared.reloadConfig()
         }
     }
-    @Published var terminalScrollbackLimitBytes: Int = {
+    var terminalScrollbackLimitBytes: Int = {
         let defaults = UserDefaults.standard
         let choices = [5, 10, 25, 50, 100, 250].map { $0 * 1_000_000 }
         if let bytes = defaults.object(forKey: "glint.terminalScrollbackLimitBytes") as? Int,
@@ -853,7 +864,7 @@ final class WorkspaceStore: ObservableObject {
     /// Opt-in memory saving: release inactive Ghostty surfaces only when they
     /// are sitting at a plain shell prompt. The pane itself remains and wakes
     /// in its last directory when selected again.
-    @Published var freeIdleTerminalsEnabled: Bool =
+    var freeIdleTerminalsEnabled: Bool =
         (UserDefaults.standard.object(forKey: "glint.freeIdleTerminalsEnabled") as? Bool) ?? false {
         didSet {
             UserDefaults.standard.set(freeIdleTerminalsEnabled,
@@ -862,7 +873,7 @@ final class WorkspaceStore: ObservableObject {
         }
     }
 
-    @Published var idleTerminalTimeoutSeconds: Int = {
+    var idleTerminalTimeoutSeconds: Int = {
         let saved = UserDefaults.standard.integer(forKey: "glint.idleTerminalTimeoutSeconds")
         return WorkspaceStore.idleTerminalTimeoutChoices.contains(saved) ? saved : 300
     }() {
@@ -881,7 +892,7 @@ final class WorkspaceStore: ObservableObject {
     /// the spark mark (StatusIconsPreview.jsx port — see
     /// scripts/generate_claude_spark_icons.py). Completion has no spark
     /// animation by design: the traffic-light status dot carries that state.
-    @Published var claudeIconStyle: ClaudeIconStyle = {
+    var claudeIconStyle: ClaudeIconStyle = {
         let raw = UserDefaults.standard.string(forKey: "glint.claudeIconStyle") ?? ""
         return ClaudeIconStyle(rawValue: raw) ?? .spark
     }() {
@@ -893,35 +904,35 @@ final class WorkspaceStore: ObservableObject {
     /// Whether Glint's Claude Code hook script is currently registered in
     /// `~/.claude/settings.json`. Mirrors `AgentHookInstaller.isInstalled()`
     /// so the Settings UI can react without polling.
-    @Published var claudeHooksInstalled: Bool = false
+    var claudeHooksInstalled: Bool = false
 
     /// Whether Glint's Codex hook script is registered in `~/.codex/hooks.json`.
-    @Published var codexHooksInstalled: Bool = false
+    var codexHooksInstalled: Bool = false
 
     /// Whether Glint's OpenCode plugin is installed in `~/.config/opencode/plugins`.
-    @Published var opencodeHooksInstalled: Bool = false
+    var opencodeHooksInstalled: Bool = false
 
     /// Whether Glint's Devin hook entries are registered in `~/.config/devin/config.json`.
-    @Published var devinHooksInstalled: Bool = false
+    var devinHooksInstalled: Bool = false
 
     /// Whether Glint's OMP extension is registered in `~/.omp/agent/settings.json`.
-    @Published var ompHooksInstalled: Bool = false
+    var ompHooksInstalled: Bool = false
 
     /// Whether Glint's Grok Build hooks are registered in `~/.grok/hooks/glint.json`.
-    @Published var grokHooksInstalled: Bool = false
+    var grokHooksInstalled: Bool = false
 
     /// Whether Glint's pi extension is installed in `~/.pi/agent/extensions`.
-    @Published var piHooksInstalled: Bool = false
+    var piHooksInstalled: Bool = false
 
     /// Whether Glint's modified-Enter shell keybindings are present in the
     /// user's shell rc (~/.zshrc / ~/.bashrc). Opt-in, default off.
-    @Published var shellKeybindsInstalled: Bool = false
+    var shellKeybindsInstalled: Bool = false
 
     /// Single switch for all behind-window vibrancy in the chrome (sidebar,
     /// toolbar, and the matching settings sidebar). When off, chrome falls
     /// back to flat opaque surfaces — useful on older Macs and gives a
     /// noticeably flatter look. Defaults to on.
-    @Published var glassEffect: Bool = (UserDefaults.standard.object(forKey: "glint.glassEffect") as? Bool) ?? true {
+    var glassEffect: Bool = (UserDefaults.standard.object(forKey: "glint.glassEffect") as? Bool) ?? true {
         didSet { UserDefaults.standard.set(glassEffect, forKey: "glint.glassEffect") }
     }
 
@@ -929,7 +940,7 @@ final class WorkspaceStore: ObservableObject {
     /// bar's "+") pops the agent chooser instead of opening a bare shell, so the
     /// new tab / pane / workspace can start in Claude / Codex / … Default off —
     /// the fast shell path stays the default. Persisted under glint.promptAgentOnNew.
-    @Published var promptAgentOnNew: Bool = (UserDefaults.standard.object(forKey: "glint.promptAgentOnNew") as? Bool) ?? false {
+    var promptAgentOnNew: Bool = (UserDefaults.standard.object(forKey: "glint.promptAgentOnNew") as? Bool) ?? false {
         didSet { UserDefaults.standard.set(promptAgentOnNew, forKey: "glint.promptAgentOnNew") }
     }
 
@@ -937,7 +948,7 @@ final class WorkspaceStore: ObservableObject {
     /// plus the terminal cursor and selection highlight. Values: "indigo" |
     /// "cyan" | "pink" | "orange" | "green". Default "indigo". Persists
     /// across launches.
-    @Published var accentName: String = UserDefaults.standard.string(forKey: "glint.accentName") ?? "indigo" {
+    var accentName: String = UserDefaults.standard.string(forKey: "glint.accentName") ?? "indigo" {
         didSet {
             UserDefaults.standard.set(accentName, forKey: "glint.accentName")
             GhosttyManager.shared.reloadConfig()
@@ -949,7 +960,7 @@ final class WorkspaceStore: ObservableObject {
 
     /// 当前主题 id(见 GlintTheme/ThemeRegistry)。改变时:持久化 → 更新 ThemeProvider
     /// → 重注入 ghostty 终端配色 → bump themeRevision 触发 chrome 刷新。默认 glint-dark。
-    @Published var themeName: String = UserDefaults.standard.string(forKey: "glint.themeName") ?? "glint-dark" {
+    var themeName: String = UserDefaults.standard.string(forKey: "glint.themeName") ?? "glint-dark" {
         didSet {
             UserDefaults.standard.set(themeName, forKey: "glint.themeName")
             ThemeProvider.shared.current = ThemeRegistry.theme(id: themeName)
@@ -962,7 +973,7 @@ final class WorkspaceStore: ObservableObject {
 
     /// 单调计数器,主题切换时 bump。chrome 根容器依赖它来强制整树重新求值——因为
     /// Theme.xxx 是 computed,SwiftUI 不会自动感知 ThemeProvider 内部的变化。
-    @Published var themeRevision: Int = 0
+    var themeRevision: Int = 0
 
     /// 临时套用某主题做「实时预览」——**不写 UserDefaults、不改 themeName**,只动
     /// ThemeProvider.current + 重注入终端 + bump 刷新 chrome。主题浏览器用方向键/hover
@@ -983,7 +994,7 @@ final class WorkspaceStore: ObservableObject {
     // 并给 ghostty 注入 background-opacity / background-blur。默认全 1.0 / 0 = 现状不变。
 
     /// 终端区透明度(ghostty 背景 + 终端 pane 的 Glint 兜底背景)。0.3…1.0。
-    @Published var terminalOpacity: Double =
+    var terminalOpacity: Double =
         (UserDefaults.standard.object(forKey: "glint.terminalOpacity") as? Double) ?? 1.0 {
         didSet {
             UserDefaults.standard.set(terminalOpacity, forKey: "glint.terminalOpacity")
@@ -999,7 +1010,7 @@ final class WorkspaceStore: ObservableObject {
     var isTerminalTransparent: Bool { terminalOpacity < 1.0 }
 
     /// 侧栏 / 工具栏透明度。0.3…1.0。不动 ghostty,只刷新 chrome 背景层。
-    @Published var chromeOpacity: Double =
+    var chromeOpacity: Double =
         (UserDefaults.standard.object(forKey: "glint.chromeOpacity") as? Double) ?? 1.0 {
         didSet {
             UserDefaults.standard.set(chromeOpacity, forKey: "glint.chromeOpacity")
@@ -1008,7 +1019,7 @@ final class WorkspaceStore: ObservableObject {
     }
 
     /// 背景模糊半径(ghostty background-blur)。0 = 关。把透出的桌面磨砂虚化。
-    @Published var backgroundBlur: Double =
+    var backgroundBlur: Double =
         (UserDefaults.standard.object(forKey: "glint.backgroundBlur") as? Double) ?? 0 {
         didSet {
             UserDefaults.standard.set(backgroundBlur, forKey: "glint.backgroundBlur")
@@ -1021,7 +1032,7 @@ final class WorkspaceStore: ObservableObject {
     /// running Dock tile with a static, pre-rendered image via
     /// `applyAppIcon()`. Persists across launches; `AppDelegate` restores
     /// it on startup.
-    @Published var appIconPreset: AppIconPreset = {
+    var appIconPreset: AppIconPreset = {
         let raw = UserDefaults.standard.string(forKey: "glint.appIconPreset") ?? ""
         return AppIconPreset(rawValue: raw) ?? .default
     }() {
@@ -1055,7 +1066,7 @@ final class WorkspaceStore: ObservableObject {
     /// On launch, re-select the workspace that was focused at last quit.
     /// When off, Glint starts on the first workspace in the list. Persists
     /// to UserDefaults so the choice survives restarts. Defaults to on.
-    @Published var restoreLastWorkspace: Bool = (UserDefaults.standard.object(forKey: "glint.restoreLastWorkspace") as? Bool) ?? true {
+    var restoreLastWorkspace: Bool = (UserDefaults.standard.object(forKey: "glint.restoreLastWorkspace") as? Bool) ?? true {
         didSet { UserDefaults.standard.set(restoreLastWorkspace, forKey: "glint.restoreLastWorkspace") }
     }
 
@@ -1065,41 +1076,41 @@ final class WorkspaceStore: ObservableObject {
     /// network-hitting CLI without user confirmation. The pane's `lastAgent`
     /// field is set by the foreground-process poller, so this only fires for
     /// panes where claude was actually live at the last poll.
-    @Published var restoreClaudeSession: Bool = (UserDefaults.standard.object(forKey: "glint.restoreClaudeSession") as? Bool) ?? false {
+    var restoreClaudeSession: Bool = (UserDefaults.standard.object(forKey: "glint.restoreClaudeSession") as? Bool) ?? false {
         didSet { UserDefaults.standard.set(restoreClaudeSession, forKey: "glint.restoreClaudeSession") }
     }
 
     /// Same as `restoreClaudeSession` but for Codex — feeds `codex resume --last`.
-    @Published var restoreCodexSession: Bool = (UserDefaults.standard.object(forKey: "glint.restoreCodexSession") as? Bool) ?? false {
+    var restoreCodexSession: Bool = (UserDefaults.standard.object(forKey: "glint.restoreCodexSession") as? Bool) ?? false {
         didSet { UserDefaults.standard.set(restoreCodexSession, forKey: "glint.restoreCodexSession") }
     }
 
     /// Same as `restoreClaudeSession` but for OpenCode — feeds `opencode --continue`.
-    @Published var restoreOpenCodeSession: Bool = (UserDefaults.standard.object(forKey: "glint.restoreOpenCodeSession") as? Bool) ?? false {
+    var restoreOpenCodeSession: Bool = (UserDefaults.standard.object(forKey: "glint.restoreOpenCodeSession") as? Bool) ?? false {
         didSet { UserDefaults.standard.set(restoreOpenCodeSession, forKey: "glint.restoreOpenCodeSession") }
     }
 
     /// Same as `restoreClaudeSession` but for Devin — feeds `devin --continue`.
-    @Published var restoreDevinSession: Bool = (UserDefaults.standard.object(forKey: "glint.restoreDevinSession") as? Bool) ?? false {
+    var restoreDevinSession: Bool = (UserDefaults.standard.object(forKey: "glint.restoreDevinSession") as? Bool) ?? false {
         didSet { UserDefaults.standard.set(restoreDevinSession, forKey: "glint.restoreDevinSession") }
     }
 
     /// Same as `restoreClaudeSession` but for OMP — feeds `omp -c` / `omp -r <id>`.
-    @Published var restoreOmpSession: Bool = (UserDefaults.standard.object(forKey: "glint.restoreOmpSession") as? Bool) ?? false {
+    var restoreOmpSession: Bool = (UserDefaults.standard.object(forKey: "glint.restoreOmpSession") as? Bool) ?? false {
         didSet { UserDefaults.standard.set(restoreOmpSession, forKey: "glint.restoreOmpSession") }
     }
 
     /// Same as `restoreClaudeSession` but for Grok Build — feeds `grok --continue` / `grok --resume <id>`.
-    @Published var restoreGrokSession: Bool = (UserDefaults.standard.object(forKey: "glint.restoreGrokSession") as? Bool) ?? false {
+    var restoreGrokSession: Bool = (UserDefaults.standard.object(forKey: "glint.restoreGrokSession") as? Bool) ?? false {
         didSet { UserDefaults.standard.set(restoreGrokSession, forKey: "glint.restoreGrokSession") }
     }
 
     /// Same as `restoreClaudeSession` but for pi — feeds `pi --continue` / `pi --session-id <id>`.
-    @Published var restorePiSession: Bool = (UserDefaults.standard.object(forKey: "glint.restorePiSession") as? Bool) ?? false {
+    var restorePiSession: Bool = (UserDefaults.standard.object(forKey: "glint.restorePiSession") as? Bool) ?? false {
         didSet { UserDefaults.standard.set(restorePiSession, forKey: "glint.restorePiSession") }
     }
 
-    /// Maps each agent kind to the @Published toggle that gates its
+    /// Maps each agent kind to the toggle that gates its
     /// session-restore-on-launch. Single source of truth: adding a new
     /// agent means adding ONE entry here, not editing two parallel switches
     /// across files (one here, one in `PaneAgentKind.restoreCommand`).
@@ -1125,7 +1136,7 @@ final class WorkspaceStore: ObservableObject {
     /// inject keystrokes into your terminals, so it's opt-in. The didSet
     /// starts/stops the listener immediately, so toggling takes effect live
     /// with no app restart.
-    @Published var externalControlEnabled: Bool = (UserDefaults.standard.object(forKey: "glint.externalControlEnabled") as? Bool) ?? false {
+    var externalControlEnabled: Bool = (UserDefaults.standard.object(forKey: "glint.externalControlEnabled") as? Bool) ?? false {
         didSet {
             UserDefaults.standard.set(externalControlEnabled, forKey: "glint.externalControlEnabled")
             if externalControlEnabled { ControlBridge.shared.start() }
@@ -1133,7 +1144,7 @@ final class WorkspaceStore: ObservableObject {
         }
     }
 
-    @Published var webRemoteEnabled: Bool = (UserDefaults.standard.object(forKey: "glint.webRemoteEnabled") as? Bool) ?? false {
+    var webRemoteEnabled: Bool = (UserDefaults.standard.object(forKey: "glint.webRemoteEnabled") as? Bool) ?? false {
         didSet {
             UserDefaults.standard.set(webRemoteEnabled, forKey: "glint.webRemoteEnabled")
             if webRemoteEnabled { WebRemoteServer.shared.start() }
@@ -1144,7 +1155,7 @@ final class WorkspaceStore: ObservableObject {
     /// Which local address the web remote binds: `loopback`, `any`, or an
     /// interface name (e.g. `en0`). Defaults to loopback — the safest choice;
     /// users who want LAN access pick a NIC or "All interfaces" explicitly.
-    @Published var webRemoteListenInterface: String = {
+    var webRemoteListenInterface: String = {
         let key = "glint.webRemoteListenInterface"
         let stored = UserDefaults.standard.string(forKey: key)
         return stored?.isEmpty == false ? stored! : WebRemoteListenTarget.loopback
@@ -1160,14 +1171,14 @@ final class WorkspaceStore: ObservableObject {
     /// Bind targets currently available on this Mac, for the "Listen on" menu.
     /// Snapshotted at init; call `refreshWebRemoteInterfaces()` to rescan after
     /// networks change (e.g. joining a different Wi-Fi).
-    @Published private(set) var webRemoteInterfaceOptions: [WebRemoteInterface] = WebRemoteAddressResolver.interfaces()
+    private(set) var webRemoteInterfaceOptions: [WebRemoteInterface] = WebRemoteAddressResolver.interfaces()
 
     func refreshWebRemoteInterfaces() {
         webRemoteInterfaceOptions = WebRemoteAddressResolver.interfaces()
     }
 
-    @Published private(set) var webRemoteStatus: WebRemoteStatus = .stopped
-    @Published private var webRemoteControlledPanes = Set<WorkspacePaneKey>()
+    private(set) var webRemoteStatus: WebRemoteStatus = .stopped
+    private var webRemoteControlledPanes = Set<WorkspacePaneKey>()
 
     var webRemoteAccessURLs: [String] {
         guard case let .ready(urls) = webRemoteStatus else { return [] }
@@ -1185,7 +1196,7 @@ final class WorkspaceStore: ObservableObject {
     /// Whether the sidebar's "Archived" section is currently expanded.
     /// Persists across launches so a user who keeps it open doesn't have to
     /// re-open it every cold start.
-    @Published var archiveExpanded: Bool = (UserDefaults.standard.object(forKey: "glint.archiveExpanded") as? Bool) ?? false {
+    var archiveExpanded: Bool = (UserDefaults.standard.object(forKey: "glint.archiveExpanded") as? Bool) ?? false {
         didSet { UserDefaults.standard.set(archiveExpanded, forKey: "glint.archiveExpanded") }
     }
 
@@ -1198,7 +1209,7 @@ final class WorkspaceStore: ObservableObject {
     /// sessions only pick up the change after they restart; newly opened
     /// panes get it immediately. Bash / fish panes are unaffected — the
     /// block lives in `.zshrc` only. Defaults to on.
-    @Published var inlineSuggestionEnabled: Bool = (UserDefaults.standard.object(forKey: "glint.inlineSuggestion.enabled") as? Bool) ?? true {
+    var inlineSuggestionEnabled: Bool = (UserDefaults.standard.object(forKey: "glint.inlineSuggestion.enabled") as? Bool) ?? true {
         didSet {
             UserDefaults.standard.set(inlineSuggestionEnabled, forKey: "glint.inlineSuggestion.enabled")
             InlineSuggestionInstaller.apply(enabled: inlineSuggestionEnabled)
@@ -1210,7 +1221,7 @@ final class WorkspaceStore: ObservableObject {
     /// read. Defaults to off — opt-in, since it persists terminal contents to
     /// disk. Turning it off also purges any snapshots already on disk, so the
     /// feature leaves no residual persisted history behind.
-    @Published var restoreTerminalScrollback: Bool = (UserDefaults.standard.object(forKey: "glint.restoreTerminalScrollback") as? Bool) ?? false {
+    var restoreTerminalScrollback: Bool = (UserDefaults.standard.object(forKey: "glint.restoreTerminalScrollback") as? Bool) ?? false {
         didSet {
             UserDefaults.standard.set(restoreTerminalScrollback, forKey: "glint.restoreTerminalScrollback")
             if !restoreTerminalScrollback { ScrollbackArchive.purgeAll() }
@@ -1220,28 +1231,28 @@ final class WorkspaceStore: ObservableObject {
     /// Play a chime when the focused pane in a background workspace flips
     /// to `.needsPermission`. Background-only so the chime doesn't fire on
     /// the workspace the user is already watching. Defaults to on.
-    @Published var soundOnPermissionRequest: Bool = (UserDefaults.standard.object(forKey: "glint.soundOnPermissionRequest") as? Bool) ?? true {
+    var soundOnPermissionRequest: Bool = (UserDefaults.standard.object(forKey: "glint.soundOnPermissionRequest") as? Bool) ?? true {
         didSet { UserDefaults.standard.set(soundOnPermissionRequest, forKey: "glint.soundOnPermissionRequest") }
     }
 
     /// Play a softer chime when a background workspace's agent finishes a
     /// turn (transitions into `.justCompleted`). Same background-only rule.
     /// Defaults to on.
-    @Published var soundOnTurnComplete: Bool = (UserDefaults.standard.object(forKey: "glint.soundOnTurnComplete") as? Bool) ?? true {
+    var soundOnTurnComplete: Bool = (UserDefaults.standard.object(forKey: "glint.soundOnTurnComplete") as? Bool) ?? true {
         didSet { UserDefaults.standard.set(soundOnTurnComplete, forKey: "glint.soundOnTurnComplete") }
     }
 
     /// Play an error tone when a background workspace's agent turn ends in an
     /// API/transport error (transitions into `.failed`). Same background-only
     /// rule as the other cues. Defaults to on.
-    @Published var soundOnError: Bool = (UserDefaults.standard.object(forKey: "glint.soundOnError") as? Bool) ?? true {
+    var soundOnError: Bool = (UserDefaults.standard.object(forKey: "glint.soundOnError") as? Bool) ?? true {
         didSet { UserDefaults.standard.set(soundOnError, forKey: "glint.soundOnError") }
     }
 
     /// 在后台 agent 需要关注时(权限请求 / 完成 / 出错),除了 chime 之外再弹一个
     /// 静默的 macOS 通知横幅。一个总开关覆盖三种状态。默认 off:横幅比 chime 更
     /// 打扰、且需要系统授权,让用户主动开启。
-    @Published var systemNotificationOnAgentAttention: Bool =
+    var systemNotificationOnAgentAttention: Bool =
         (UserDefaults.standard.object(forKey: "glint.systemNotificationOnAgentAttention") as? Bool) ?? false {
         didSet {
             UserDefaults.standard.set(systemNotificationOnAgentAttention,
@@ -1256,7 +1267,7 @@ final class WorkspaceStore: ObservableObject {
     /// Show a Dock badge count for background agent states that need a look.
     /// Unlike notification banners this stays quiet and carries no prompt or
     /// transcript text. Defaults to on because it is non-interruptive.
-    @Published var dockBadgeOnAgentAttention: Bool = (UserDefaults.standard.object(forKey: "glint.dockBadgeOnAgentAttention") as? Bool) ?? true {
+    var dockBadgeOnAgentAttention: Bool = (UserDefaults.standard.object(forKey: "glint.dockBadgeOnAgentAttention") as? Bool) ?? true {
         didSet {
             UserDefaults.standard.set(dockBadgeOnAgentAttention, forKey: "glint.dockBadgeOnAgentAttention")
             if !dockBadgeOnAgentAttention { dockBadgePaneStatuses.removeAll() }
@@ -1269,7 +1280,7 @@ final class WorkspaceStore: ObservableObject {
     /// the focused pane's current-directory subtree (off). Git-bound workspaces
     /// always review at the repo root — their gitPath is already root — so this
     /// only selects the scope for plain workspaces. See `openReview`.
-    @Published var reviewAtRepoRoot: Bool = (UserDefaults.standard.object(forKey: "glint.reviewAtRepoRoot") as? Bool) ?? true {
+    var reviewAtRepoRoot: Bool = (UserDefaults.standard.object(forKey: "glint.reviewAtRepoRoot") as? Bool) ?? true {
         didSet { UserDefaults.standard.set(reviewAtRepoRoot, forKey: "glint.reviewAtRepoRoot") }
     }
 
@@ -1277,19 +1288,19 @@ final class WorkspaceStore: ObservableObject {
     /// root (on, default) or the focused pane's cwd (off) for plain workspaces.
     /// Git-bound workspaces always reveal their bound root. See
     /// `revealCurrentInFinder`.
-    @Published var revealAtRepoRoot: Bool = (UserDefaults.standard.object(forKey: "glint.revealAtRepoRoot") as? Bool) ?? true {
+    var revealAtRepoRoot: Bool = (UserDefaults.standard.object(forKey: "glint.revealAtRepoRoot") as? Bool) ?? true {
         didSet { UserDefaults.standard.set(revealAtRepoRoot, forKey: "glint.revealAtRepoRoot") }
     }
 
     /// NSSound names for the three audio cues, persisted; the defaults are
     /// the original hardcoded chimes.
-    @Published var soundPermissionName: String = UserDefaults.standard.string(forKey: "glint.soundPermissionName") ?? "Funk" {
+    var soundPermissionName: String = UserDefaults.standard.string(forKey: "glint.soundPermissionName") ?? "Funk" {
         didSet { UserDefaults.standard.set(soundPermissionName, forKey: "glint.soundPermissionName") }
     }
-    @Published var soundCompleteName: String = UserDefaults.standard.string(forKey: "glint.soundCompleteName") ?? "Glass" {
+    var soundCompleteName: String = UserDefaults.standard.string(forKey: "glint.soundCompleteName") ?? "Glass" {
         didSet { UserDefaults.standard.set(soundCompleteName, forKey: "glint.soundCompleteName") }
     }
-    @Published var soundErrorName: String = UserDefaults.standard.string(forKey: "glint.soundErrorName") ?? "Basso" {
+    var soundErrorName: String = UserDefaults.standard.string(forKey: "glint.soundErrorName") ?? "Basso" {
         didSet { UserDefaults.standard.set(soundErrorName, forKey: "glint.soundErrorName") }
     }
 
@@ -1309,7 +1320,7 @@ final class WorkspaceStore: ObservableObject {
     /// focuses that workspace's pane, so the card sinks back to its drag-
     /// assigned slot — i.e. this is a soft visual nudge, not a permanent
     /// reorder. Defaults to off so existing users see no change.
-    @Published var sortCompletedFirst: Bool = (UserDefaults.standard.object(forKey: "glint.sortCompletedFirst") as? Bool) ?? false {
+    var sortCompletedFirst: Bool = (UserDefaults.standard.object(forKey: "glint.sortCompletedFirst") as? Bool) ?? false {
         didSet { UserDefaults.standard.set(sortCompletedFirst, forKey: "glint.sortCompletedFirst") }
     }
 
@@ -1317,14 +1328,14 @@ final class WorkspaceStore: ObservableObject {
     /// as the context menu's "Close Workspace"). Defaults to on so the
     /// behaviour stays available without configuration; users who find it
     /// surprising can disable it here.
-    @Published var middleClickClosesWorkspace: Bool = (UserDefaults.standard.object(forKey: "glint.middleClickClosesWorkspace") as? Bool) ?? true {
+    var middleClickClosesWorkspace: Bool = (UserDefaults.standard.object(forKey: "glint.middleClickClosesWorkspace") as? Bool) ?? true {
         didSet { UserDefaults.standard.set(middleClickClosesWorkspace, forKey: "glint.middleClickClosesWorkspace") }
     }
 
     /// Middle-click on a tab chip closes that tab. This intentionally has its
     /// own setting: closing a tab and closing its whole workspace have different
     /// consequences, even though both retain their existing busy-pane confirms.
-    @Published var middleClickClosesTabs: Bool = (UserDefaults.standard.object(forKey: "glint.middleClickClosesTabs") as? Bool) ?? true {
+    var middleClickClosesTabs: Bool = (UserDefaults.standard.object(forKey: "glint.middleClickClosesTabs") as? Bool) ?? true {
         didSet { UserDefaults.standard.set(middleClickClosesTabs, forKey: "glint.middleClickClosesTabs") }
     }
 
@@ -1333,7 +1344,7 @@ final class WorkspaceStore: ObservableObject {
     /// default (`glint.skipUnsafePasteConfirmation`) is inverted so the
     /// "Don't ask again" checkbox in the alert flips this off, and the
     /// settings toggle reads "Warn before pasting multi-line text".
-    @Published var warnBeforeUnsafePaste: Bool = !UserDefaults.standard.bool(forKey: "glint.skipUnsafePasteConfirmation") {
+    var warnBeforeUnsafePaste: Bool = !UserDefaults.standard.bool(forKey: "glint.skipUnsafePasteConfirmation") {
         didSet { UserDefaults.standard.set(!warnBeforeUnsafePaste, forKey: "glint.skipUnsafePasteConfirmation") }
     }
 
@@ -1571,8 +1582,28 @@ final class WorkspaceStore: ObservableObject {
     private var surfaceViews: [WorkspacePaneKey: GhosttySurfaceView] = [:]
     private var dockBadgePaneStatuses: [WorkspacePaneKey: PaneAgentStatus] = [:]
 
-    private var saveCancellable: AnyCancellable?
-    private var gitWatcherCancellable: AnyCancellable?
+    private var saveWorkItem: DispatchWorkItem?
+    private var gitWatcherWorkItem: DispatchWorkItem?
+
+    /// Debounced persist: coalesce a burst of persistable-property changes
+    /// into one disk write after a 500ms quiet window. Replaces the prior
+    /// Combine `MergeMany($workspaces, $selectedWorkspaceID, $sidebarCollapsed).debounce`
+    /// wiring now that `@Observable` exposes no per-property publishers.
+    private func schedulePersist() {
+        saveWorkItem?.cancel()
+        let item = DispatchWorkItem { [weak self] in self?.persist() }
+        saveWorkItem = item
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: item)
+    }
+
+    /// Debounced git-watcher reconciliation: frequent workspace-model mutations
+    /// (cwd/process/title churn) collapse into one `syncGitWatchers()` call.
+    private func scheduleGitWatcherSync() {
+        gitWatcherWorkItem?.cancel()
+        let item = DispatchWorkItem { [weak self] in self?.syncGitWatchers() }
+        gitWatcherWorkItem = item
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.5, execute: item)
+    }
     private var fallbackTimer: Timer?
     private var fallbackGitTick = 0
     private var observerTokens: [NSObjectProtocol] = []
@@ -1628,28 +1659,15 @@ final class WorkspaceStore: ObservableObject {
         // toggle doesn't run during init, so we have to call this here.
         InlineSuggestionInstaller.apply(enabled: self.inlineSuggestionEnabled)
 
-        // Debounced autosave: only persistable @Published fields trigger a save.
-        // Wiring this to bare `objectWillChange` re-encodes on every transient
-        // hook event (paneAgentState/paneProcesses/UI-only flags) — none of
-        // which are part of PersistedState — so the disk write does nothing but
-        // burn CPU and IO during active agent turns. Subscribe to the actual
-        // persisted publishers instead, drop the synthetic initial value, and
-        // map each one to Void so they merge into a single sink.
-        saveCancellable = Publishers.MergeMany(
-            $workspaces.dropFirst().map { _ in () }.eraseToAnyPublisher(),
-            $selectedWorkspaceID.dropFirst().map { _ in () }.eraseToAnyPublisher(),
-            $sidebarCollapsed.dropFirst().map { _ in () }.eraseToAnyPublisher()
-        )
-        .debounce(for: .milliseconds(500), scheduler: DispatchQueue.main)
-        .sink { [weak self] _ in self?.persist() }
-
+        // Debounced autosave: only persistable fields trigger a save. Under
+        // @Observable there are no per-property Combine publishers, so the
+        // three persist triggers (`workspaces`/`selectedWorkspaceID`/
+        // `sidebarCollapsed`) coalesce via a DispatchWorkItem debounce in their
+        // `didSet`. This preserves the prior behaviour: one disk write after a
+        // 500ms quiet window, never on transient agent/UI-only state.
         // Repository bindings change rarely, but workspace model updates are
         // frequent. Reconcile by path so ordinary cwd/process updates don't
         // recreate FSEvent streams.
-        gitWatcherCancellable = $workspaces
-            .dropFirst()
-            .debounce(for: .milliseconds(500), scheduler: DispatchQueue.main)
-            .sink { [weak self] _ in self?.syncGitWatchers() }
         syncGitWatchers()
 
         // Shell integration drives normal cwd/process/git updates. This slow,
@@ -1846,9 +1864,11 @@ final class WorkspaceStore: ObservableObject {
     }
 
     deinit {
-        fallbackTimer?.invalidate()
-        for token in observerTokens {
-            NotificationCenter.default.removeObserver(token)
+        MainActor.assumeIsolated {
+            fallbackTimer?.invalidate()
+            for token in observerTokens {
+                NotificationCenter.default.removeObserver(token)
+            }
         }
     }
 
@@ -4077,7 +4097,7 @@ final class WorkspaceStore: ObservableObject {
     private func shouldTimerPoll(_ ws: Workspace) -> Bool {
         Self.shouldTimerPoll(ws, selectedWorkspaceID: selectedWorkspaceID,
                              effectiveGitPath: effectiveGitPath(for: ws),
-                             appIsActive: NSApp.isActive)
+                             appIsActive: NSApp?.isActive ?? false)
     }
 
     /// Fire-and-forget single refresh, used when the *displayed* terminal

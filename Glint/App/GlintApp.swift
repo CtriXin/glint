@@ -75,7 +75,7 @@ final class ChildWindowExceptionGuard: NSObject {
 @main
 struct GlintApp: App {
     @NSApplicationDelegateAdaptor(AppDelegate.self) var appDelegate
-    @StateObject private var workspaceStore = WorkspaceStore()
+    @State private var workspaceStore = WorkspaceStore()
     @StateObject private var updater = UpdaterController()
     @StateObject private var usage = UsageStore()
     @StateObject private var codexHomes = CodexHomeStore()
@@ -127,7 +127,7 @@ struct GlintApp: App {
         // produces neither. WindowGroup would open a fresh window on reopen.
         Window("Glint", id: "glint-main") {
             ContentView()
-                .environmentObject(workspaceStore)
+                .environment(workspaceStore)
                 .environmentObject(workspaceStore.activity)
                 .environmentObject(updater)
                 .environmentObject(usage)

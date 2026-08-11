@@ -1,7 +1,7 @@
 import SwiftUI
 
 struct PaneView: View {
-    @EnvironmentObject var store: WorkspaceStore
+    @Environment(WorkspaceStore.self) private var store
     /// Captured by value when the tree was rendered — never read live from
     /// the store here. See the comment on `PaneTreeView.workspaceID` for why
     /// (stale evaluation of the outgoing tree during a workspace switch).

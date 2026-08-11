@@ -5,7 +5,7 @@ import Combine
 /// Centered modal overlay summoned by ⌘⇧P or the toolbar's ⌘ button.
 /// Type to fuzzy-filter; ↑↓ to move selection; ⏎ to execute; ⎋ to close.
 struct CommandPalette: View {
-    @EnvironmentObject var store: WorkspaceStore
+    @Environment(WorkspaceStore.self) private var store
     @EnvironmentObject var codexHomes: CodexHomeStore
     @State private var query: String = ""
     @FocusState private var queryFocused: Bool
@@ -468,7 +468,7 @@ private final class PaletteModel: ObservableObject {
 // MARK: - Row + model
 
 private struct PaletteRow: View {
-    @EnvironmentObject var store: WorkspaceStore
+    @Environment(WorkspaceStore.self) private var store
     let item: PaletteItem
     let selected: Bool
 

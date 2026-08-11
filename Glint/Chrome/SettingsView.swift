@@ -6,7 +6,7 @@ import SwiftUI
 /// sidebar + dark content). Controls live inside grouped cards with a
 /// shared `SettingsCard` / `SettingsRow` / `SettingsDivider` vocabulary.
 struct GlintSettingsView: View {
-    @EnvironmentObject var store: WorkspaceStore
+    @Environment(WorkspaceStore.self) private var store
     @Environment(\.dismiss) private var dismiss
     @State private var selected: SettingsCategory = .general
 
@@ -186,7 +186,7 @@ enum SettingsCategory: String, CaseIterable, Identifiable {
 }
 
 private struct SettingsCategoryRow: View {
-    @EnvironmentObject var store: WorkspaceStore
+    @Environment(WorkspaceStore.self) private var store
     let category: SettingsCategory
     let isSelected: Bool
     let onSelect: () -> Void
@@ -378,9 +378,10 @@ struct StatusPill: View {
 // MARK: - Panes
 
 private struct GeneralPane: View {
-    @EnvironmentObject var store: WorkspaceStore
+    @Environment(WorkspaceStore.self) private var store
 
     var body: some View {
+        @Bindable var store = store
         SettingsCard("Language") {
             SettingsRow("Language",
                         subtitle: "Display language for Glint's UI.") {
@@ -458,7 +459,7 @@ private struct GeneralPane: View {
 
 private struct UpdatesCard: View {
     @EnvironmentObject var updater: UpdaterController
-    @EnvironmentObject var store: WorkspaceStore
+    @Environment(WorkspaceStore.self) private var store
 
     var body: some View {
         if updater.updatesManagedLocally {
@@ -505,7 +506,7 @@ private struct UpdatesCard: View {
 }
 
 private struct AppearancePane: View {
-    @EnvironmentObject var store: WorkspaceStore
+    @Environment(WorkspaceStore.self) private var store
     @State private var browsingThemes = false
 
     /// 设置里只展示精选 + 「跟随 Ghostty」,全量 502 套走浏览器(搜索 + 实时预览),
@@ -520,6 +521,7 @@ private struct AppearancePane: View {
     }
 
     var body: some View {
+        @Bindable var store = store
         SettingsCard("Theme") {
             VStack(alignment: .leading, spacing: 8) {
                 Text("Terminal and interface share one palette — recolor both at once.")
@@ -567,7 +569,7 @@ private struct AppearancePane: View {
             .padding(.vertical, 2)
             .sheet(isPresented: $browsingThemes) {
                 ThemeBrowserSheet()
-                    .environmentObject(store)
+                    .environment(store)
             }
             SettingsDivider()
             SettingsRow("Accent",
@@ -765,7 +767,7 @@ private struct CommittedSlider: View {
 // 名字。**点击某行 = 选中并把那套套到整窗预览**(终端 + chrome 一起),底部「应用」
 // 按钮才真正持久化。取消 / 直接关 sheet = 放弃,还原回原主题。鼠标悬停只高亮,不变样。
 private struct ThemeBrowserSheet: View {
-    @EnvironmentObject var store: WorkspaceStore
+    @Environment(WorkspaceStore.self) private var store
     @Environment(\.dismiss) private var dismiss
     @State private var query = ""
     /// 是否已点「应用」。未应用就关闭 → onDisappear 还原。
@@ -1002,7 +1004,7 @@ private struct TerminalPane: View {
         let kind: Kind
     }
 
-    @EnvironmentObject var store: WorkspaceStore
+    @Environment(WorkspaceStore.self) private var store
     @State private var shellKeybindsInstallFailed = false
     @State private var confirmingWebRemoteKeyReset = false
     @State private var resettingWebRemoteCredentials = false
@@ -1012,6 +1014,7 @@ private struct TerminalPane: View {
         .map { $0 * 1_000_000 }
 
     var body: some View {
+        @Bindable var store = store
         SettingsCard("Font") {
             SettingsRow("Family", subtitle: "Used for all panes. Falls back to Menlo if missing.") {
                 GlintDropdown(selection: $store.terminalFontFamily,
@@ -1425,7 +1428,7 @@ private struct TerminalPane: View {
 }
 
 private struct AgentsPane: View {
-    @EnvironmentObject var store: WorkspaceStore
+    @Environment(WorkspaceStore.self) private var store
     @EnvironmentObject var usage: UsageStore
     @EnvironmentObject var codexHomes: CodexHomeStore
     @State private var claudeInstallFailed = false
@@ -1441,6 +1444,7 @@ private struct AgentsPane: View {
     @State private var codexRemovalWarning: String?
 
     var body: some View {
+        @Bindable var store = store
         SettingsCard("Claude Code",
                      footer: "Glint offers to install a reporter into ~/.claude/settings.json on first launch. Existing hooks are preserved.") {
             SettingsRow("Status", subtitle: claudeInstallFailed
@@ -2301,7 +2305,7 @@ private struct GlintDropdownSectionHeader: View {
 }
 
 private struct GlintDropdownRow: View {
-    @EnvironmentObject var store: WorkspaceStore
+    @Environment(WorkspaceStore.self) private var store
     let label: String
     let isSelected: Bool
     let select: () -> Void
@@ -2457,7 +2461,7 @@ private struct SoundPickerList: View {
 /// speaker button that just previews the sound, leaving the selection
 /// (and the popover) untouched.
 private struct SoundPickerRow: View {
-    @EnvironmentObject var store: WorkspaceStore
+    @Environment(WorkspaceStore.self) private var store
     let name: String
     let isSelected: Bool
     let isPlaying: Bool
@@ -2510,7 +2514,7 @@ private struct SoundPickerRow: View {
 /// the art is the label. Stills only; settings shouldn't loop animations
 /// just for a picker.
 private struct ClaudeIconStyleSwatch: View {
-    @EnvironmentObject var store: WorkspaceStore
+    @Environment(WorkspaceStore.self) private var store
     let style: ClaudeIconStyle
 
     private var isSelected: Bool { store.claudeIconStyle == style }
@@ -2620,7 +2624,7 @@ private struct ShortcutsPane: View {
 
 private struct AboutPane: View {
     @EnvironmentObject var updater: UpdaterController
-    @EnvironmentObject var store: WorkspaceStore
+    @Environment(WorkspaceStore.self) private var store
 
     var body: some View {
         VStack(spacing: 24) {

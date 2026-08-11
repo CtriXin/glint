@@ -1,5 +1,6 @@
 import XCTest
 import Combine
+import Observation
 import QuartzCore
 @testable import Glint
 
@@ -415,20 +416,26 @@ final class PerformanceRegressionTests: XCTestCase {
         XCTAssertFalse(layer.isOpaque)
     }
 
-    func testPaneActivityDoesNotPublishWorkspaceStore() {
+    func testPaneActivityDoesNotInvalidateWorkspaceStoreObservation() {
         let activity = PaneActivityStore()
         let store = WorkspaceStore(activity: activity)
         let key = WorkspaceStore.WorkspacePaneKey(workspace: UUID(), pane: PaneID(value: 0))
-        var workspacePublishes = 0
-        var activityPublishes = 0
-        let workspaceCancellable = store.objectWillChange.sink { workspacePublishes += 1 }
-        let activityCancellable = activity.objectWillChange.sink { activityPublishes += 1 }
+
+        // A view reading only `store.workspaces` must not be invalidated when a
+        // high-frequency pane-activity value changes — that isolation was the
+        // reason PaneActivityStore exists as a separate observable. Under
+        // @Observable, field-level tracking makes this automatic; verify it.
+        var workspaceInvalidated = false
+        withObservationTracking {
+            _ = store.workspaces
+        } onChange: {
+            workspaceInvalidated = true
+        }
 
         store.paneProcesses[key] = "zsh"
 
         XCTAssertEqual(store.paneProcesses[key], "zsh")
-        XCTAssertEqual(activityPublishes, 1)
-        XCTAssertEqual(workspacePublishes, 0)
-        withExtendedLifetime((workspaceCancellable, activityCancellable)) {}
+        XCTAssertFalse(workspaceInvalidated,
+                       "PaneActivityStore changes must not invalidate WorkspaceStore observers")
     }
 }
