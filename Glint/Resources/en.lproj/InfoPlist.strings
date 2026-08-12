@@ -1,0 +1,5 @@
+/* TCC purpose strings shown in macOS privacy permission prompts. */
+"NSDesktopFolderUsageDescription" = "CtriTerm runs shell commands that may need to access files in your Desktop folder.";
+"NSDocumentsFolderUsageDescription" = "CtriTerm runs shell commands that may need to access files in your Documents folder.";
+"NSDownloadsFolderUsageDescription" = "CtriTerm runs shell commands that may need to access files in your Downloads folder.";
+"NSLocalNetworkUsageDescription" = "CtriTerm uses your local network to let authenticated devices control shared terminals.";

@@ -31,6 +31,12 @@
 	<string>$(MACOSX_DEPLOYMENT_TARGET)</string>
 	<key>NSHumanReadableCopyright</key>
 	<string>© 2026 CtriTerm, based on Glint</string>
+	<key>NSDesktopFolderUsageDescription</key>
+	<string>CtriTerm runs shell commands that may need to access files in your Desktop folder.</string>
+	<key>NSDocumentsFolderUsageDescription</key>
+	<string>CtriTerm runs shell commands that may need to access files in your Documents folder.</string>
+	<key>NSDownloadsFolderUsageDescription</key>
+	<string>CtriTerm runs shell commands that may need to access files in your Downloads folder.</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>CtriTerm uses your local network to let authenticated devices control shared terminals.</string>
 	<key>NSPrincipalClass</key>
