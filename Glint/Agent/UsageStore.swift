@@ -3,6 +3,20 @@ import Combine
 import CryptoKit
 import IOKit
 
+/// A model-scoped weekly bucket from Claude's usage endpoint (`limits[]`
+/// entries whose `scope.model.display_name` is set — e.g. "Fable"). These
+/// sit alongside the account-wide weekly window: a model-specific cap that
+/// Claude Code renders as its own progress bar, so we do too.
+struct ScopedQuota: Hashable, Codable, Identifiable {
+    /// Source-reported display name ("Fable"). Data, shown verbatim.
+    var name: String
+    /// 0–100, fraction of the window already consumed.
+    var percent: Double
+    var resetsAt: Date?
+
+    var id: String { name }
+}
+
 /// One agent's rate-limit snapshot. Percentages are 0–100 (fraction of the
 /// window already consumed); `nil` fields mean "not reported by this source".
 struct AgentQuota: Hashable, Codable {
@@ -19,6 +33,9 @@ struct AgentQuota: Hashable, Codable {
     /// Source-reported window sizes. nil keeps legacy 5h / 7d labels.
     var primaryWindowMinutes: Int? = nil
     var secondaryWindowMinutes: Int? = nil
+    /// Model-scoped weekly buckets (Claude only, e.g. "Fable"). nil/absent
+    /// when the source reports none; old persisted snapshots decode as nil.
+    var scopedWeekly: [ScopedQuota]? = nil
 
     var primaryWindowLabel: String {
         Self.windowLabel(minutes: primaryWindowMinutes, fallback: "5h")
@@ -53,7 +70,13 @@ struct AgentQuota: Hashable, Codable {
             weeklyResetsAt: finite(weeklyResetsAt),
             planType: planType,
             primaryWindowMinutes: primaryWindowMinutes,
-            secondaryWindowMinutes: secondaryWindowMinutes
+            secondaryWindowMinutes: secondaryWindowMinutes,
+            scopedWeekly: scopedWeekly?.compactMap { entry in
+                guard entry.percent.isFinite, !entry.name.isEmpty else { return nil }
+                return ScopedQuota(name: entry.name,
+                                   percent: entry.percent,
+                                   resetsAt: finite(entry.resetsAt))
+            }
         )
     }
 
@@ -881,8 +904,9 @@ enum ClaudeUsageReader {
     }
 
     /// Decode the usage payload into our model. Lenient about field names so a
-    /// minor server rename doesn't break the whole row.
-    private static func decode(_ data: Data) -> AgentQuota? {
+    /// minor server rename doesn't break the whole row. Internal (not private)
+    /// so tests can pin the wire shape — same treatment as CodexLiveReader.
+    static func decode(_ data: Data) -> AgentQuota? {
         guard let obj = try? JSONSerialization.jsonObject(with: data) as? [String: Any] else { return nil }
 
         // Accept either a flat shape or one nested under "five_hour"/"seven_day".
@@ -918,7 +942,29 @@ enum ClaudeUsageReader {
             weeklyPercent: pct(weekly),
             sessionResetsAt: reset(session),
             weeklyResetsAt: reset(weekly),
-            planType: obj["plan_type"] as? String ?? obj["planType"] as? String
+            planType: obj["plan_type"] as? String ?? obj["planType"] as? String,
+            scopedWeekly: scopedBuckets(obj)
         )
+    }
+
+    /// Model-scoped weekly buckets from the newer `limits` array — entries
+    /// like `{kind: "weekly_scoped", group: "weekly", percent: 12, scope:
+    /// {model: {display_name: "Fable"}}}`. Read generically (any weekly entry
+    /// carrying a model display name) so future model buckets surface without
+    /// a code change. Returns nil when the array is absent or has no scoped
+    /// entries, keeping the field's "not reported" semantics.
+    private static func scopedBuckets(_ obj: [String: Any]) -> [ScopedQuota]? {
+        guard let limits = obj["limits"] as? [[String: Any]] else { return nil }
+        let scoped: [ScopedQuota] = limits.compactMap { entry in
+            guard (entry["group"] as? String) == "weekly",
+                  let scope = entry["scope"] as? [String: Any],
+                  let model = scope["model"] as? [String: Any],
+                  let name = model["display_name"] as? String, !name.isEmpty,
+                  let percent = (entry["percent"] as? NSNumber)?.doubleValue,
+                  percent.isFinite else { return nil }
+            let resetsAt = (entry["resets_at"] as? String).flatMap(parseISODate)
+            return ScopedQuota(name: name, percent: percent, resetsAt: resetsAt)
+        }
+        return scoped.isEmpty ? nil : scoped
     }
 }

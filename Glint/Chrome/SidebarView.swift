@@ -472,6 +472,18 @@ private struct QuotaRow: View {
                             warn: nil
                         )
                     }
+                    // Model-scoped weekly buckets (e.g. "Fable") — same
+                    // weekly track styling, warned when genuinely tight.
+                    ForEach(quota.scopedWeekly ?? []) { scoped in
+                        QuotaColumn(
+                            kind: scoped.name,
+                            percent: scoped.percent,
+                            resetsAt: scoped.resetsAt,
+                            now: ctx.date,
+                            fill: color.opacity(0.45),
+                            warn: scoped.percent >= AgentQuota.warnThreshold ? warn : nil
+                        )
+                    }
                 }
             }
         }
