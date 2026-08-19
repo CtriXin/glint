@@ -19,17 +19,21 @@ those commits without including the files that define this distribution.
 ## Daily use: use only CtriTerm
 
 CtriTerm is the local app's user-facing name and is installed at
-`/Applications/CtriTerm.app` (`0.1.27-ctrixin.387`). It replaced the prior
+`/Applications/CtriTerm.app` (`0.1.27-ctrixin.391`). It replaced the prior
 `CtriXin Glint.app` while retaining the same internal identity and all existing
-local state. The installed `.387` release is Developer ID signed, Apple
+local state. The installed `.391` release is Developer ID signed, Apple
 notarized, and stapled, so it passes normal Gatekeeper verification on another
 Mac.
 
-`.387` migrates the state model to field-level `@Observable` tracking so views
-update only when the properties they read change (less whole-window re-render
-under interaction). It also still carries the `.383` upstream `v0.1.27-beta.2`
-fixes (Web Remote two-finger scrolling/recovery, split white-flash fix) and the
-`.380` child-window exception guard (`chenbstack/glint#98`).
+`.391` fixes the Claude quota row freezing/vanishing (empty keychain read
+cached as a real token during Claude Code credential rotation; empty reads now
+rejected, poisoned cache self-heals) and a split pane keeping the previous
+workspace's terminal after a workspace switch (declined surface host claim had
+no retry; post-commit recovery added, upstream `chenbstack/glint#103`). It
+carries `.387`'s field-level `@Observable` state model, the `.383` upstream
+`v0.1.27-beta.2` fixes (Web Remote two-finger scrolling/recovery, split
+white-flash fix) and the `.380` child-window exception guard
+(`chenbstack/glint#98`).
 
 - Launch **CtriTerm** from Spotlight, Finder, or `open -a "CtriTerm"`.
 - Use it as the sole day-to-day Glint installation. It is safe to leave the
