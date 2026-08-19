@@ -615,6 +615,12 @@ enum ClaudeUsageReader {
                 cached = ClaudeUsageReader.loadToken()
                 loaded = true
             }
+            // An empty string is NOT a token: a raced read of Claude Code's
+            // keychain item (mid-rewrite during a credential rotation) once
+            // produced "" here, which then got cached, encrypted to disk, and
+            // fed to the endpoint as `Bearer ` — every poll 401'd and the row
+            // silently died until relaunch. Treat empty as missing.
+            guard let cached, !cached.isEmpty else { return nil }
             return cached
         }
         /// Re-read Claude's source item after `rejected` came back 401/403,
@@ -697,13 +703,17 @@ enum ClaudeUsageReader {
     /// Pull the OAuth access token out of Claude Code's login keychain item.
     /// Reads only the item Claude Code itself created; nothing is written here.
     private static func readClaudeToken() -> String? {
-        guard let data = readKeychainData(service: keychainService, account: nil) else { return nil }
+        guard let data = readKeychainData(service: keychainService, account: nil),
+              !data.isEmpty else { return nil }
         // The stored blob is the credentials JSON; tolerate a bare token too.
         if let stored = try? JSONDecoder().decode(Stored.self, from: data),
-           let tok = stored.claudeAiOauth?.accessToken {
+           let tok = stored.claudeAiOauth?.accessToken, !tok.isEmpty {
             return tok
         }
-        return String(data: data, encoding: .utf8)
+        // A bare-token blob. Empty data would decode to "" (non-nil!) and
+        // poison the file cache via saveGlintToken — reject it here.
+        let raw = String(data: data, encoding: .utf8)
+        return (raw?.isEmpty == false) ? raw : nil
     }
 
     /// Read + decrypt our own copied token from the file cache. A decrypt
@@ -729,8 +739,15 @@ enum ClaudeUsageReader {
 
     private static func decryptedToken(at url: URL?) -> String? {
         guard let url,
-              let data = try? Data(contentsOf: url),
-              let token = decryptToken(data), !token.isEmpty else { return nil }
+              let data = try? Data(contentsOf: url) else { return nil }
+        guard let token = decryptToken(data), !token.isEmpty else {
+            // Poisoned (encrypted empty string) or undecryptable cache. Evict
+            // it so the miss is visible and the source keychain item gets
+            // re-consulted instead of this file silently absorbing every
+            // launch's load.
+            try? FileManager.default.removeItem(at: url)
+            return nil
+        }
         return token
     }
 
@@ -769,7 +786,12 @@ enum ClaudeUsageReader {
     /// Also evicts the legacy keychain copy so the secret stops living there.
     private static func saveGlintToken(_ token: String) {
         defer { deleteLegacyKeychainToken() }
-        guard let url = tokenCacheURL, let data = encryptToken(token) else { return }
+        // Never persist an empty token: it encrypts fine (nonce+tag = 28 bytes
+        // of nothing) and, once on disk, decryptToken's isEmpty guard treats
+        // the cache as missing while the file's mtime stops moving — masking
+        // the fact that every source read since has failed.
+        guard !token.isEmpty,
+              let url = tokenCacheURL, let data = encryptToken(token) else { return }
         try? data.write(to: url, options: .atomic)
         try? FileManager.default.setAttributes([.posixPermissions: 0o600], ofItemAtPath: url.path)
     }

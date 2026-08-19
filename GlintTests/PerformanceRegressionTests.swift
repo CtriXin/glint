@@ -214,6 +214,27 @@ final class PerformanceRegressionTests: XCTestCase {
         ))
     }
 
+    func testPostCommitRecoveryTreatsEvictedOrRepurposedRecordedHostAsStale() {
+        // Recorded host gone or torn down: stale — the live representable
+        // must be allowed to claim the surface.
+        XCTAssertTrue(SurfaceHostClaimPolicy.recordedHostIsStale(
+            recordedHostIsAttached: false,
+            recordedHostExpectsSurface: true
+        ))
+        // Recorded host recycled onto a DIFFERENT pane's surface (the
+        // workspace-switch container-reuse case): stale.
+        XCTAssertTrue(SurfaceHostClaimPolicy.recordedHostIsStale(
+            recordedHostIsAttached: true,
+            recordedHostExpectsSurface: false
+        ))
+        // Recorded host still attached AND still expecting this surface: a
+        // genuine same-commit conflict — the generation verdict stands.
+        XCTAssertFalse(SurfaceHostClaimPolicy.recordedHostIsStale(
+            recordedHostIsAttached: true,
+            recordedHostExpectsSurface: true
+        ))
+    }
+
     func testNewestHostWinsDeterministicOutgoingIncomingOutgoingRace() {
         let outgoingHost = NSView()
         let incomingHost = NSView()

@@ -18,6 +18,21 @@ enum SurfaceHostClaimPolicy {
         isSameHost || !currentHostIsAttached || candidateGeneration >= currentGeneration
     }
 
+    /// Post-commit recovery gate for a declined attach. A surface's recorded
+    /// host is never cleared on eviction, so after SwiftUI recycles split
+    /// containers across a workspace switch the recording routinely points at
+    /// another live container that no longer holds (or expects) this surface.
+    /// The generation comparison in `shouldClaim` then declines the one
+    /// legitimate attach with no retry — the "previous workspace's pane stays
+    /// on screen" bug. Post-commit, a recorded host that is detached or now
+    /// expects a DIFFERENT surface is stale and the live representable owns
+    /// the pane; a host that still expects this surface is a genuine
+    /// same-commit conflict and keeps the generation policy's verdict.
+    static func recordedHostIsStale(recordedHostIsAttached: Bool,
+                                    recordedHostExpectsSurface: Bool) -> Bool {
+        !recordedHostIsAttached || !recordedHostExpectsSurface
+    }
+
     static func shouldDeferUntilAfterCommit(candidateGeneration: UInt64,
                                             currentGeneration: UInt64,
                                             currentHostExists: Bool,
@@ -66,6 +81,14 @@ struct PaneSurfaceRepresentable: NSViewRepresentable {
         surfaceView.refreshAppearanceBacking()
         if surfaceView.superview !== nsView {
             attach(surfaceView, to: nsView)
+            if surfaceView.superview !== nsView {
+                // The attach was declined by the host-claim policy. Before the
+                // @Observable migration a ~1/s incidental re-render quietly
+                // retried this and healed it; now a declined claim is FINAL,
+                // and the container keeps showing the previous workspace's
+                // surface. Recover once, after the commit.
+                schedulePostCommitRecovery(of: surfaceView, into: nsView)
+            }
         }
         // Don't yank focus out of a text editor (sidebar search, rename
         // field, …). SwiftUI re-runs updateNSView roughly every second
@@ -210,6 +233,41 @@ struct PaneSurfaceRepresentable: NSViewRepresentable {
                 hostClaimMatches: surface.paneHostView === container &&
                     surface.paneHostGeneration == container.hostGeneration
             ) else { return }
+            Self.pin(surface, in: container)
+        }
+    }
+
+    /// Post-commit recovery for an attach the claim policy declined.
+    ///
+    /// The policy compares container generations against the surface's
+    /// RECORDED host — but nothing clears that recording when a surface is
+    /// evicted, so after SwiftUI recycles split containers across a workspace
+    /// switch the "current host" is routinely another live container that no
+    /// longer holds (or expects) this surface. The generation comparison then
+    /// declines the one legitimate attach, with no retry — the reported
+    /// "old workspace's pane stays on screen" bug.
+    ///
+    /// After the commit the truth is knowable: every surviving representable
+    /// has claimed its surface, so a recorded host that is detached or now
+    /// expects a DIFFERENT surface is a stale recording, and this live
+    /// representable owns the pane. A recorded host that still expects this
+    /// surface is a genuine same-commit conflict (split-collapse steal-back)
+    /// — leave the generation policy's verdict alone there.
+    private func schedulePostCommitRecovery(of surface: GhosttySurfaceView,
+                                            into container: NoDragContainerView) {
+        DispatchQueue.main.async {
+            guard container.window != nil,
+                  isPaneVisible(),
+                  surface.superview !== container else { return }
+            let recordedHost = surface.paneHostView as? NoDragContainerView
+            let recordingIsStale = SurfaceHostClaimPolicy.recordedHostIsStale(
+                recordedHostIsAttached: recordedHost?.window != nil,
+                recordedHostExpectsSurface: recordedHost?.expectedSurface === surface
+            )
+            guard recordingIsStale else { return }
+            surface.paneHostView = container
+            surface.paneHostGeneration = container.hostGeneration
+            container.expectedSurface = surface
             Self.pin(surface, in: container)
         }
     }
