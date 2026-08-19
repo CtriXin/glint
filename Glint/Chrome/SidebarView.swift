@@ -453,36 +453,47 @@ private struct QuotaRow: View {
             // Recompute the reset countdowns every minute even between store
             // polls so "48m" visibly ticks down.
             TimelineView(.periodic(from: .now, by: 60)) { ctx in
-                HStack(spacing: 8) {
-                    QuotaColumn(
-                        kind: quota.primaryWindowLabel,
-                        percent: quota.sessionPercent,
-                        resetsAt: quota.sessionResetsAt,
-                        now: ctx.date,
-                        fill: color,
-                        warn: quota.sessionIsWarn ? warn : nil
-                    )
-                    if quota.weeklyPercent != nil {
+                // Two lines: the session window on top; the account weekly
+                // window and any model-scoped weekly buckets (e.g. "Fable")
+                // together below — they're all 7-day windows. Three columns
+                // on one line truncated every label ("F…", "2…") at sidebar
+                // width.
+                VStack(alignment: .leading, spacing: 6) {
+                    HStack(spacing: 8) {
                         QuotaColumn(
-                            kind: quota.secondaryWindowLabel,
-                            percent: quota.weeklyPercent,
-                            resetsAt: quota.weeklyResetsAt,
+                            kind: quota.primaryWindowLabel,
+                            percent: quota.sessionPercent,
+                            resetsAt: quota.sessionResetsAt,
                             now: ctx.date,
-                            fill: color.opacity(0.45),
-                            warn: nil
+                            fill: color,
+                            warn: quota.sessionIsWarn ? warn : nil
                         )
                     }
-                    // Model-scoped weekly buckets (e.g. "Fable") — same
-                    // weekly track styling, warned when genuinely tight.
-                    ForEach(quota.scopedWeekly ?? []) { scoped in
-                        QuotaColumn(
-                            kind: scoped.name,
-                            percent: scoped.percent,
-                            resetsAt: scoped.resetsAt,
-                            now: ctx.date,
-                            fill: color.opacity(0.45),
-                            warn: scoped.percent >= AgentQuota.warnThreshold ? warn : nil
-                        )
+                    if quota.weeklyPercent != nil || !(quota.scopedWeekly ?? []).isEmpty {
+                        HStack(spacing: 8) {
+                            if quota.weeklyPercent != nil {
+                                QuotaColumn(
+                                    kind: quota.secondaryWindowLabel,
+                                    percent: quota.weeklyPercent,
+                                    resetsAt: quota.weeklyResetsAt,
+                                    now: ctx.date,
+                                    fill: color.opacity(0.45),
+                                    warn: nil
+                                )
+                            }
+                            // Model-scoped weekly buckets — same weekly track
+                            // styling, warned when genuinely tight.
+                            ForEach(quota.scopedWeekly ?? []) { scoped in
+                                QuotaColumn(
+                                    kind: scoped.name,
+                                    percent: scoped.percent,
+                                    resetsAt: scoped.resetsAt,
+                                    now: ctx.date,
+                                    fill: color.opacity(0.45),
+                                    warn: scoped.percent >= AgentQuota.warnThreshold ? warn : nil
+                                )
+                            }
+                        }
                     }
                 }
             }
