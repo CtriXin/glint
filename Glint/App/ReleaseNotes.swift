@@ -52,6 +52,15 @@ enum ReleaseNotes {
     /// "发版「更新内容」" for the release-time workflow.
     static let all: [ReleaseNote] = [
         ReleaseNote(
+            version: "0.1.27-ctrixin.397",
+            en: [
+                "Quota rows are easier to read: the session window sits on its own line, and the weekly windows (7d, plus per-model budgets like Fable) share the line below — no more cramped, truncated labels."
+            ],
+            zh: [
+                "额度行更好读了：会话窗口独占一行，周窗口（7d 和 Fable 这类模型独立预算）排在第二行 —— 标签不再挤在一起被截断。"
+            ]
+        ),
+        ReleaseNote(
             version: "0.1.27-ctrixin.394",
             en: [
                 "The Claude quota row now shows model-specific weekly budgets: when your plan has a separate per-model cap (like Fable), it appears as its own track next to the 5h and 7d windows, with the same reset countdown. New model budgets will show up automatically as Anthropic adds them."
