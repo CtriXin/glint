@@ -52,6 +52,17 @@ enum ReleaseNotes {
     /// "发版「更新内容」" for the release-time workflow.
     static let all: [ReleaseNote] = [
         ReleaseNote(
+            version: "0.1.27-ctrixin.391",
+            en: [
+                "Fixed the Claude quota row silently freezing and disappearing after being toggled off and on: a momentarily empty read of the login keychain (racing Claude Code's credential rotation) could be cached as if it were the real token, after which every background refresh failed quietly. Empty reads are now rejected, and a poisoned cache heals itself.",
+                "Fixed a split pane sometimes keeping the previous workspace's terminal after switching workspaces: a recycled pane container could lose its claim to the incoming terminal surface with no retry, leaving the old one on screen."
+            ],
+            zh: [
+                "修复 Claude 额度条悄悄冻结、关开一次后彻底消失的问题：读取登录钥匙串时若撞上 Claude Code 轮换凭证的瞬间，可能把一次空读取当成真实 token 缓存下来，之后每次后台刷新都静默失败。现在空读取会被拒绝，损坏的缓存也能自愈。",
+                "修复分屏下切换工作区后，某个窗格偶尔仍显示上一个工作区终端内容的问题：被复用的窗格容器可能无法接管新终端 surface 且没有重试，导致旧画面残留。"
+            ]
+        ),
+        ReleaseNote(
             version: "0.1.27-ctrixin.387",
             en: [
                 "Under the hood, the app's state model now updates views field-by-field instead of all at once. Switching workspaces, tabs, and panes, live agent status, and Settings toggles are more targeted, so less of the window re-renders than before — quieter background work and snappier interaction.",
