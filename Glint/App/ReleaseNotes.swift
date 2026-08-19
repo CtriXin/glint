@@ -52,6 +52,15 @@ enum ReleaseNotes {
     /// "发版「更新内容」" for the release-time workflow.
     static let all: [ReleaseNote] = [
         ReleaseNote(
+            version: "0.1.27-ctrixin.394",
+            en: [
+                "The Claude quota row now shows model-specific weekly budgets: when your plan has a separate per-model cap (like Fable), it appears as its own track next to the 5h and 7d windows, with the same reset countdown. New model budgets will show up automatically as Anthropic adds them."
+            ],
+            zh: [
+                "Claude 额度行现在会显示模型独立的周额度：当你的套餐带单独模型预算（如 Fable）时，它会作为独立进度条出现在 5h / 7d 旁边，同样带重置倒计时。以后 Anthropic 新增模型预算也会自动显示。"
+            ]
+        ),
+        ReleaseNote(
             version: "0.1.27-ctrixin.391",
             en: [
                 "Fixed the Claude quota row silently freezing and disappearing after being toggled off and on: a momentarily empty read of the login keychain (racing Claude Code's credential rotation) could be cached as if it were the real token, after which every background refresh failed quietly. Empty reads are now rejected, and a poisoned cache heals itself.",
