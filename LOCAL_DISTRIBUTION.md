@@ -19,16 +19,20 @@ those commits without including the files that define this distribution.
 ## Daily use: use only CtriTerm
 
 CtriTerm is the local app's user-facing name and is installed at
-`/Applications/CtriTerm.app` (`0.1.27-ctrixin.397`). It replaced the prior
+`/Applications/CtriTerm.app` (`0.1.27-ctrixin.400`). It replaced the prior
 `CtriXin Glint.app` while retaining the same internal identity and all existing
-local state. The installed `.397` release is Developer ID signed, Apple
+local state. The installed `.400` release is Developer ID signed, Apple
 notarized, and stapled, so it passes normal Gatekeeper verification on another
 Mac.
 
-`.397` stacks quota rows onto two lines (session window above; weekly
-windows — 7d and per-model budgets — below). It carries `.394`'s per-model
-Claude weekly budgets (e.g. Fable) as their own sidebar tracks, parsed
-generically from the usage endpoint's `limits[]` array, `.391`'s fixes for the Claude quota row freezing/vanishing (empty
+`.400` stops the recurring macOS keychain prompt: the Claude quota poll no
+longer re-reads Claude Code's keychain item unattended (Claude Code recreates
+that item on every credential refresh, wiping the "Always Allow" grant) — a
+rejected token now raises a Reauthorize button under the sidebar's Claude row,
+and the system prompt only appears on that click. It carries `.397`'s two-line
+quota rows (session window above; weekly windows — 7d and per-model budgets —
+below), `.394`'s per-model Claude weekly budgets (e.g. Fable) as their own
+sidebar tracks, parsed generically from the usage endpoint's `limits[]` array, `.391`'s fixes for the Claude quota row freezing/vanishing (empty
 keychain read cached as a real token) and the split pane keeping the previous
 workspace's terminal after a workspace switch (upstream `chenbstack/glint#103`),
 `.387`'s field-level `@Observable` state model, the `.383` upstream
