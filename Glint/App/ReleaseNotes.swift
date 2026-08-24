@@ -52,6 +52,15 @@ enum ReleaseNotes {
     /// "发版「更新内容」" for the release-time workflow.
     static let all: [ReleaseNote] = [
         ReleaseNote(
+            version: "0.1.27-ctrixin.400",
+            en: [
+                "No more surprise password prompts. Claude rotates its sign-in every few hours, and CtriTerm used to re-read its keychain credentials each time — so macOS kept asking. Now the sidebar quietly keeps the last-known quota and shows a Reauthorize button; the system prompt only appears when you click it."
+            ],
+            zh: [
+                "不再突然弹密码框了。Claude 的登录态每隔几小时轮换一次，以前 CtriTerm 每次都会重新读取钥匙串凭据，macOS 每次都弹授权框。现在侧栏会安静保留上次的配额数字，并显示「重新授权」按钮 —— 只有你点击时才会弹一次系统授权。"
+            ]
+        ),
+        ReleaseNote(
             version: "0.1.27-ctrixin.397",
             en: [
                 "Quota rows are easier to read: the session window sits on its own line, and the weekly windows (7d, plus per-model budgets like Fable) share the line below — no more cramped, truncated labels."
