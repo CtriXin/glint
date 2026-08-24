@@ -159,6 +159,13 @@ struct CodexRefreshCoordinator {
 final class UsageStore: ObservableObject {
     @Published private(set) var claude: AgentQuota?
     @Published private(set) var codex: AgentQuota?
+    /// True when Claude Code rotated its credentials and our cached token was
+    /// rejected. The sidebar shows a Reauthorize button; clearing it requires
+    /// a successful `reauthorizeClaude()`. The poll path deliberately does
+    /// NOT touch the keychain on its own (Claude Code recreates its keychain
+    /// item on every refresh, so unattended reads pop a macOS dialog every
+    /// few hours regardless of "Always Allow").
+    @Published private(set) var claudeNeedsReauth = false
     @Published private(set) var codexHomeStatuses: [CodexHomeStatus] = []
 
     var codexSidebarQuotas: [CodexSidebarQuota] {
@@ -175,7 +182,7 @@ final class UsageStore: ObservableObject {
         didSet {
             guard claudeEnabled != oldValue else { return }
             UserDefaults.standard.set(claudeEnabled, forKey: Self.claudeKey)
-            if !claudeEnabled { claude = nil; Self.saveQuota(nil, agent: .claude) }
+            if !claudeEnabled { claude = nil; claudeNeedsReauth = false; Self.saveQuota(nil, agent: .claude) }
             syncTimer()
             if claudeEnabled { refreshNow() }
         }
@@ -280,11 +287,40 @@ final class UsageStore: ObservableObject {
         }
         if claudeEnabled {
             Task { [weak self] in
-                let claude = await ClaudeUsageReader.read()
+                let outcome = await ClaudeUsageReader.read()
                 await MainActor.run {
-                    self?.apply(claude, to: .claude)
+                    self?.applyClaude(outcome)
                 }
             }
+        }
+    }
+
+    /// User clicked the sidebar's Reauthorize button. This is the ONLY path
+    /// that re-reads Claude Code's keychain item at runtime — the macOS
+    /// authorization prompt is expected here because the user just asked.
+    func reauthorizeClaude() {
+        guard claudeEnabled else { return }
+        Task { [weak self] in
+            let outcome = await ClaudeUsageReader.reauthorize()
+            await MainActor.run {
+                self?.applyClaude(outcome)
+            }
+        }
+    }
+
+    /// Fold a reader outcome into published state: fresh data replaces the
+    /// bar and clears any reauth flag; `.needsReauth` raises the flag but
+    /// keeps the last-known numbers up; `.unavailable` changes nothing.
+    private func applyClaude(_ outcome: ClaudeUsageReader.ReadOutcome) {
+        guard claudeEnabled else { return }
+        switch outcome {
+        case .quota(let quota):
+            claudeNeedsReauth = false
+            apply(quota, to: .claude)
+        case .needsReauth:
+            claudeNeedsReauth = true
+        case .unavailable:
+            break
         }
     }
 
@@ -590,11 +626,13 @@ enum CodexLiveReader {
 /// only `decode`/`endpoint` here need updating; the sidebar handles absence.
 enum ClaudeUsageReader {
     /// Keychain generic-password service used by Claude Code's CLI login — the
-    /// token's source of truth, owned by Claude Code. Reading it can pop a macOS
+    /// token's source of truth, owned by Claude Code. Reading it pops a macOS
     /// authorization prompt (its ACL is bound to Claude Code's signature, not
-    /// ours), so we touch it as little as possible: once on first launch to seed
-    /// our own copy, then again ONLY when the seeded copy is rejected (token
-    /// rotated). See `tokenCacheURL`.
+    /// ours), and "Always Allow" never sticks: Claude Code RECREATES this item
+    /// on every credential refresh, wiping the ACL grant with it. So we touch
+    /// it as little as possible: once on first launch to seed our own file
+    /// copy, then again ONLY on an explicit Reauthorize click — never from the
+    /// unattended poll path. See `tokenCacheURL`.
     private static let keychainService = "Claude Code-credentials"
     /// Legacy Glint-owned keychain item the token copy used to live in. Its ACL
     /// was bound to our code signature, so EVERY version bump (cdhash change)
@@ -619,20 +657,21 @@ enum ClaudeUsageReader {
     /// pollers, or a duplicated `@StateObject` init firing `refreshNow` twice)
     /// coalesce onto a single access instead of each popping their own prompt.
     ///
-    /// `token()` loads once per launch (our item first, falling back to Claude's
-    /// and seeding ours). `refreshFromSource(rejected:)` re-reads Claude's item
-    /// on a genuine auth failure — THROTTLED to once per 15 minutes rather than
-    /// once per launch: Claude Code rotates its access token every few hours,
-    /// so a long-running app sees several rotations in one launch. A once-ever
-    /// guard permanently froze the quota bar after the second rotation (every
-    /// poll 401'd, the stale last-known numbers stayed up until relaunch). The
-    /// throttle still prevents prompt storms when the endpoint fails for other
-    /// reasons.
+    /// `token()` loads once per launch (our file cache first, falling back to
+    /// Claude's keychain item and seeding ours — the ONE automatic keychain
+    /// read, which only fires when no usable file cache exists yet).
+    /// `forceRefreshFromSource()` re-reads Claude's item on an explicit user
+    /// gesture (the sidebar's Reauthorize button). It is NEVER called from the
+    /// poll path: Claude Code recreates its keychain item on every credential
+    /// refresh, wiping the ACL, so any unattended re-read pops an
+    /// authorization dialog every few hours no matter how often the user
+    /// clicks "Always Allow". A 30s guard coalesces a double-click into one
+    /// prompt.
     private actor TokenCache {
         private var cached: String?
         private var loaded = false
         private var lastSourceRead: Date?
-        private static let sourceReadInterval: TimeInterval = 15 * 60
+        private static let sourceReadGuard: TimeInterval = 30
         func token() -> String? {
             if !loaded {
                 cached = ClaudeUsageReader.loadToken()
@@ -646,15 +685,15 @@ enum ClaudeUsageReader {
             guard let cached, !cached.isEmpty else { return nil }
             return cached
         }
-        /// Re-read Claude's source item after `rejected` came back 401/403,
-        /// at most once per throttle window. Persists the fresh token into our
-        /// own item. Returns it only if it actually changed (no point retrying
-        /// the same token). A failed read keeps the old cached token so a later
-        /// window can try the source again once Claude Code has rotated it.
-        func refreshFromSource(rejected: String) -> String? {
+        /// User-initiated re-read of Claude's source item after the cached
+        /// token was rejected (Claude Code rotated it). Persists the fresh
+        /// token into our file cache so later polls stay keychain-free. A
+        /// failed read keeps the old cached token so a later gesture can
+        /// retry once Claude Code has rotated it.
+        func forceRefreshFromSource() -> String? {
             if let last = lastSourceRead,
-               Date().timeIntervalSince(last) < Self.sourceReadInterval {
-                return nil
+               Date().timeIntervalSince(last) < Self.sourceReadGuard {
+                return cached
             }
             lastSourceRead = Date()
             let fresh = ClaudeUsageReader.readClaudeToken()
@@ -662,7 +701,7 @@ enum ClaudeUsageReader {
                 ClaudeUsageReader.saveGlintToken(fresh)
                 cached = fresh
             }
-            return (fresh != nil && fresh != rejected) ? fresh : nil
+            return cached
         }
     }
     private static let cache = TokenCache()
@@ -673,26 +712,59 @@ enum ClaudeUsageReader {
     }
 
     /// Outcome of one usage request, so the caller can tell a rotated token
-    /// (worth one source re-read) apart from any other failure (fail closed).
+    /// apart from any other failure (fail closed).
     private enum FetchResult {
         case ok(AgentQuota?)
         case authFailed
         case otherFailure
     }
 
-    static func read() async -> AgentQuota? {
-        guard let token = await cache.token() else { return nil }
+    /// What a poll (or reauthorize) concluded, so the UI can keep last-known
+    /// numbers on transient failure but surface a reauth affordance when the
+    /// token itself is dead.
+    enum ReadOutcome {
+        /// Fresh numbers from the endpoint.
+        case quota(AgentQuota)
+        /// Transient failure (network, 429, response-shape drift) — keep
+        /// showing the last-known snapshot.
+        case unavailable
+        /// The cached token was rejected and only a user-gesture keychain
+        /// read can recover. Never auto-healed from the poll path (see
+        /// `TokenCache`).
+        case needsReauth
+    }
+
+    /// Poll path. Touches the keychain ONLY when no usable file cache exists
+    /// yet (the one-time seed); a 401 afterwards downgrades to `.needsReauth`
+    /// instead of re-reading Claude's item, because Claude Code recreates
+    /// that item on every credential refresh — wiping the ACL — so unattended
+    /// re-reads pop a macOS authorization dialog every few hours even when
+    /// the user keeps clicking "Always Allow".
+    static func read() async -> ReadOutcome {
+        guard let token = await cache.token() else { return .unavailable }
         switch await fetch(token: token) {
         case .ok(let quota):
-            return quota
+            return quota.map(ReadOutcome.quota) ?? .unavailable
         case .otherFailure:
-            return nil
+            return .unavailable
         case .authFailed:
-            // The seeded token was rejected — Claude Code likely rotated it.
-            // Go back to the source ONCE; retry only if it actually changed.
-            guard let fresh = await cache.refreshFromSource(rejected: token) else { return nil }
-            if case .ok(let quota) = await fetch(token: fresh) { return quota }
-            return nil
+            return .needsReauth
+        }
+    }
+
+    /// User-gesture path (the sidebar's Reauthorize button): re-read Claude
+    /// Code's keychain item ONCE — the macOS prompt here is expected, the
+    /// user just asked for it — then fetch with the fresh token.
+    static func reauthorize() async -> ReadOutcome {
+        guard let token = await cache.forceRefreshFromSource(),
+              !token.isEmpty else { return .needsReauth }
+        switch await fetch(token: token) {
+        case .ok(let quota):
+            return quota.map(ReadOutcome.quota) ?? .unavailable
+        case .authFailed:
+            return .needsReauth
+        case .otherFailure:
+            return .unavailable
         }
     }
 

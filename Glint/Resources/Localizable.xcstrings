@@ -1156,6 +1156,17 @@
         }
       }
     },
+    "Claude rotates its sign-in every few hours. Click to let CtriTerm read the refreshed credentials (one macOS authorization prompt).": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Claude 的登录态每隔几小时轮换一次。点此让 CtriTerm 读取刷新后的凭据（会弹一次 macOS 授权框）。"
+          }
+        }
+      }
+    },
     "Clear": {
       "extractionState": "stale",
       "localizations": {
@@ -4046,6 +4057,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "重新选中上次退出 Glint 时聚焦的工作区。"
+          }
+        }
+      }
+    },
+    "Reauthorize Claude quota": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "重新授权 Claude 配额"
           }
         }
       }

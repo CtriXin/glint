@@ -98,7 +98,10 @@ struct SidebarView: View {
                 .scrollContentBackground(.hidden)
 
                 VStack(spacing: 0) {
-                    QuotaSection(claude: usage.claude, codexHomes: usage.codexSidebarQuotas)
+                    QuotaSection(claude: usage.claude,
+                                 codexHomes: usage.codexSidebarQuotas,
+                                 claudeNeedsReauth: usage.claudeNeedsReauth,
+                                 reauthorizeClaude: usage.reauthorizeClaude)
                     newWorkspaceCard
                         .padding(.horizontal, 10)
                         .padding(.top, 10)
@@ -393,6 +396,11 @@ private struct QuotaSection: View {
     @Environment(WorkspaceStore.self) private var store
     let claude: AgentQuota?
     let codexHomes: [CodexSidebarQuota]
+    /// Claude's cached token was rejected (Claude Code rotated credentials)
+    /// and only a user-gesture keychain read can recover — show the
+    /// Reauthorize affordance under the Claude row.
+    let claudeNeedsReauth: Bool
+    let reauthorizeClaude: () -> Void
 
     /// Brand fills, matching the sidebar mascot shadows.
     private static let claudeColor = Color(red: 235/255, green: 140/255, blue: 82/255)
@@ -400,7 +408,7 @@ private struct QuotaSection: View {
     private static let warnColor = Color(red: 1.0, green: 0.745, blue: 0.18) // #FFBE2E
 
     var body: some View {
-        if claude == nil && codexHomes.isEmpty {
+        if claude == nil && codexHomes.isEmpty && !claudeNeedsReauth {
             EmptyView()
         } else {
             VStack(spacing: 10) {
@@ -410,6 +418,26 @@ private struct QuotaSection: View {
                                                            isSpark: store.claudeIconStyle == .spark),
                              quota: claude,
                              color: Self.claudeColor, warn: Self.warnColor)
+                }
+                if claudeNeedsReauth {
+                    // Claude Code recreates its keychain item on every
+                    // credential refresh, wiping the "Always Allow" grant, so
+                    // the poll path never re-reads it unattended. This button
+                    // is the one place the macOS prompt is expected.
+                    Button(action: reauthorizeClaude) {
+                        HStack(spacing: 12) {
+                            Image(systemName: "key.fill")
+                                .font(.system(size: 10))
+                                .frame(width: 14, height: 14)
+                            Text("Reauthorize Claude quota")
+                                .font(.caption)
+                            Spacer(minLength: 0)
+                        }
+                        .foregroundStyle(Self.claudeColor)
+                        .contentShape(Rectangle())
+                    }
+                    .buttonStyle(.plain)
+                    .help("Claude rotates its sign-in every few hours. Click to let CtriTerm read the refreshed credentials (one macOS authorization prompt).")
                 }
                 ForEach(codexHomes) { item in
                     QuotaRow(name: item.name,
