@@ -19,13 +19,20 @@ those commits without including the files that define this distribution.
 ## Daily use: use only CtriTerm
 
 CtriTerm is the local app's user-facing name and is installed at
-`/Applications/CtriTerm.app` (`0.1.27-ctrixin.400`). It replaced the prior
+`/Applications/CtriTerm.app` (`0.1.27-ctrixin.400`; `.403` is built and
+published, pending install). It replaced the prior
 `CtriXin Glint.app` while retaining the same internal identity and all existing
 local state. The installed `.400` release is Developer ID signed, Apple
 notarized, and stapled, so it passes normal Gatekeeper verification on another
 Mac.
 
-`.400` stops the recurring macOS keychain prompt: the Claude quota poll no
+`.403` reads the Claude quota through the Claude CLI itself (`claude /usage`,
+spawned headless, 15-minute background floor) instead of touching Claude Code's
+keychain item — whose ACL Claude Code rewrites on every credential refresh,
+making any direct-read grant temporary by design. On Macs with the CLI the
+sidebar refreshes silently with zero macOS authorization dialogs; the OAuth
+keychain path (with the Reauthorize button) remains only as a fallback for
+Macs without the CLI. `.400` stopped the recurring macOS keychain prompt: the Claude quota poll no
 longer re-reads Claude Code's keychain item unattended (Claude Code recreates
 that item on every credential refresh, wiping the "Always Allow" grant) — a
 rejected token now raises a Reauthorize button under the sidebar's Claude row,
