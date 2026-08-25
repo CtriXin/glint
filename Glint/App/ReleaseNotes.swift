@@ -52,6 +52,15 @@ enum ReleaseNotes {
     /// "发版「更新内容」" for the release-time workflow.
     static let all: [ReleaseNote] = [
         ReleaseNote(
+            version: "0.1.27-ctrixin.403",
+            en: [
+                "Claude quota with zero password prompts — for real this time. CtriTerm now reads usage through the Claude CLI itself (which owns its own keychain access) instead of asking macOS for Claude's credentials. The sidebar refreshes quietly in the background: no dialogs, and no Reauthorize button needed on Macs with the Claude CLI installed."
+            ],
+            zh: [
+                "Claude 配额这次真正零弹窗了：CtriTerm 改为通过 Claude CLI 自己读取用量（CLI 访问的是它自己的钥匙串条目），不再向 macOS 申请 Claude 的凭据。侧栏在后台静默刷新 —— 装有 Claude CLI 的机器上既没有密码框，也不再需要「重新授权」按钮。"
+            ]
+        ),
+        ReleaseNote(
             version: "0.1.27-ctrixin.400",
             en: [
                 "No more surprise password prompts. Claude rotates its sign-in every few hours, and CtriTerm used to re-read its keychain credentials each time — so macOS kept asking. Now the sidebar quietly keeps the last-known quota and shows a Reauthorize button; the system prompt only appears when you click it."
