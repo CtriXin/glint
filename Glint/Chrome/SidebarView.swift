@@ -437,7 +437,7 @@ private struct QuotaSection: View {
                         .contentShape(Rectangle())
                     }
                     .buttonStyle(.plain)
-                    .help("Claude rotates its sign-in every few hours. Click to let CtriTerm read the refreshed credentials (one macOS authorization prompt).")
+                    .help("Claude's sign-in rotates every few hours. Click to refresh the quota now — via the Claude CLI when available (no prompt), otherwise one macOS keychain prompt.")
                 }
                 ForEach(codexHomes) { item in
                     QuotaRow(name: item.name,

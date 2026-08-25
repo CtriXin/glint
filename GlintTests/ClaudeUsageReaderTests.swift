@@ -94,3 +94,94 @@ final class ClaudeUsageReaderTests: XCTestCase {
         XCTAssertNil(quota.scopedWeekly)
     }
 }
+
+/// Pins the `claude /usage` stdout shape (Claude Code 2.1.x) that
+/// `ClaudeUsageCLIReader` parses — the keychain-free quota path.
+final class ClaudeUsageCLIReaderTests: XCTestCase {
+
+    /// Mirrors the live 2026-08-25 output on this Mac, trailing analytics
+    /// section included (it must be ignored).
+    private static let sample = """
+    You are currently using your subscription to power your Claude Code usage
+
+    Current session: 24% used · resets Aug 25 at 3pm (Asia/Singapore)
+    Current week (all models): 22% used · resets Aug 27 at 11am (Asia/Singapore)
+    Current week (Fable): 43% used · resets Aug 27 at 11am (Asia/Singapore)
+
+    What's contributing to your limits usage?
+    Approximate, based on local sessions on this machine — does not include other devices or claude.ai.
+
+    Last 24h · 320 requests · 1 session
+      100% of your usage came from sessions active for 8+ hours
+    """
+
+    /// 2026-08-25 11:33 +08:00 — just before the captured output was taken.
+    private static var now: Date {
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = TimeZone(identifier: "Asia/Singapore")!
+        return cal.date(from: DateComponents(year: 2026, month: 8, day: 25, hour: 11, minute: 33))!
+    }
+
+    func testParseExtractsSessionWeeklyAndScopedBuckets() throws {
+        let quota = try XCTUnwrap(ClaudeUsageCLIReader.parse(Self.sample, now: Self.now))
+        XCTAssertEqual(quota.sessionPercent, 24)
+        XCTAssertEqual(quota.weeklyPercent, 22)
+        let scoped = try XCTUnwrap(quota.scopedWeekly)
+        XCTAssertEqual(scoped.map(\.name), ["Fable"])
+        XCTAssertEqual(scoped[0].percent, 43)
+    }
+
+    func testParseResolvesResetDatesInCaptionTimeZone() throws {
+        let quota = try XCTUnwrap(ClaudeUsageCLIReader.parse(Self.sample, now: Self.now))
+        let sessionReset = try XCTUnwrap(quota.sessionResetsAt)
+        // "Aug 25 at 3pm (Asia/Singapore)" == 15:00 +08:00 == 07:00 UTC.
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = try XCTUnwrap(TimeZone(identifier: "Asia/Singapore"))
+        let comps = cal.dateComponents([.month, .day, .hour, .minute], from: sessionReset)
+        XCTAssertEqual(comps.month, 8)
+        XCTAssertEqual(comps.day, 25)
+        XCTAssertEqual(comps.hour, 15)
+        XCTAssertEqual(comps.minute, 0)
+        // Weekly reset is after the session reset and within the 8d sanity bound.
+        let weeklyReset = try XCTUnwrap(quota.weeklyResetsAt)
+        XCTAssertGreaterThan(weeklyReset, sessionReset)
+        XCTAssertLessThanOrEqual(weeklyReset.timeIntervalSince(Self.now), 8 * 24 * 3600)
+        XCTAssertEqual(quota.scopedWeekly?.first?.resetsAt, weeklyReset)
+    }
+
+    /// A reset caption in the past relative to `now` rolls to next year's
+    /// occurrence (Dec → Jan boundary), never renders a negative countdown.
+    func testParseResetDateRollsPastOccurrenceToNextYear() throws {
+        var cal = Calendar(identifier: .gregorian)
+        cal.timeZone = try XCTUnwrap(TimeZone(identifier: "UTC"))
+        let dec31 = cal.date(from: DateComponents(year: 2026, month: 12, day: 31, hour: 23))!
+        let date = try XCTUnwrap(
+            ClaudeUsageCLIReader.parseResetDate("Jan 1 at 12am (UTC)", now: dec31, maxAhead: 8 * 24 * 3600))
+        XCTAssertEqual(cal.component(.year, from: date), 2027)
+    }
+
+    /// Implausibly distant resets (parse garbage, window drift) yield nil —
+    /// the bar keeps its percent but drops the countdown rather than lying.
+    func testParseResetDateRejectsBeyondWindow() {
+        let date = ClaudeUsageCLIReader.parseResetDate(
+            "Dec 31 at 11pm (UTC)", now: Self.now, maxAhead: 6 * 3600)
+        XCTAssertNil(date)
+    }
+
+    /// Not-logged-in / older-CLI output has no session line → nil, so the
+    /// caller degrades to last-known numbers.
+    func testParseReturnsNilWithoutSessionLine() {
+        XCTAssertNil(ClaudeUsageCLIReader.parse("Not logged in · Please run /login", now: Self.now))
+        XCTAssertNil(ClaudeUsageCLIReader.parse("", now: Self.now))
+    }
+
+    /// Lines without a reset tail still parse (countdown simply absent).
+    func testParseToleratesMissingResetCaption() throws {
+        let quota = try XCTUnwrap(ClaudeUsageCLIReader.parse(
+            "Current session: 61% used\nCurrent week (all models): 30% used", now: Self.now))
+        XCTAssertEqual(quota.sessionPercent, 61)
+        XCTAssertEqual(quota.weeklyPercent, 30)
+        XCTAssertNil(quota.sessionResetsAt)
+        XCTAssertNil(quota.weeklyResetsAt)
+    }
+}

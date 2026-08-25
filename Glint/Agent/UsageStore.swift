@@ -734,13 +734,21 @@ enum ClaudeUsageReader {
         case needsReauth
     }
 
-    /// Poll path. Touches the keychain ONLY when no usable file cache exists
-    /// yet (the one-time seed); a 401 afterwards downgrades to `.needsReauth`
-    /// instead of re-reading Claude's item, because Claude Code recreates
-    /// that item on every credential refresh — wiping the ACL — so unattended
-    /// re-reads pop a macOS authorization dialog every few hours even when
-    /// the user keeps clicking "Always Allow".
+    /// Poll path. CLI-first: `claude /usage` reads Claude Code's OWN keychain
+    /// item, so macOS never prompts us (see `ClaudeUsageCLIReader`). Only
+    /// Macs without the CLI fall through to the OAuth path, which touches the
+    /// keychain ONLY when no usable file cache exists yet (the one-time
+    /// seed); a 401 afterwards downgrades to `.needsReauth` instead of
+    /// re-reading Claude's item, because Claude Code recreates that item's
+    /// ACL on every credential refresh — so unattended re-reads pop a macOS
+    /// authorization dialog every few hours even when the user keeps clicking
+    /// "Always Allow".
     static func read() async -> ReadOutcome {
+        switch await ClaudeUsageCLIReader.read(force: false) {
+        case .quota(let quota): return .quota(quota)
+        case .failed: return .unavailable
+        case .noCLI: break
+        }
         guard let token = await cache.token() else { return .unavailable }
         switch await fetch(token: token) {
         case .ok(let quota):
@@ -752,10 +760,15 @@ enum ClaudeUsageReader {
         }
     }
 
-    /// User-gesture path (the sidebar's Reauthorize button): re-read Claude
-    /// Code's keychain item ONCE — the macOS prompt here is expected, the
-    /// user just asked for it — then fetch with the fresh token.
+    /// User-gesture path (the sidebar's Reauthorize button): force a CLI
+    /// probe first — on Macs with the CLI this refreshes the quota with NO
+    /// prompt at all. Without CLI data, re-read Claude Code's keychain item
+    /// ONCE (the macOS prompt here is expected, the user just asked for it),
+    /// then fetch with the fresh token.
     static func reauthorize() async -> ReadOutcome {
+        if case .quota(let quota) = await ClaudeUsageCLIReader.read(force: true) {
+            return .quota(quota)
+        }
         guard let token = await cache.forceRefreshFromSource(),
               !token.isEmpty else { return .needsReauth }
         switch await fetch(token: token) {
@@ -1038,5 +1051,329 @@ enum ClaudeUsageReader {
             return ScopedQuota(name: name, percent: percent, resetsAt: resetsAt)
         }
         return scoped.isEmpty ? nil : scoped
+    }
+}
+
+// MARK: - Claude CLI usage reader (keychain-free)
+
+/// Reads Claude's quota by spawning `claude /usage` as a plain subprocess and
+/// parsing its stdout. The CLI reads its OWN login-keychain item, so macOS
+/// never prompts CtriTerm — this path is keychain-free for us by
+/// construction. This is the same conclusion CodexBar shipped
+/// (steipete/CodexBar#2380/#2634): Claude Code rewrites its keychain item's
+/// ACL on every credential refresh, so any direct-read "Always Allow" grant is
+/// temporary BY DESIGN and recurring password dialogs are unavoidable for
+/// direct readers. Going through the CLI sidesteps the whole problem.
+///
+/// Background polls reuse the last successful result within a 15-minute
+/// floor: the CLI is a ~280 MB Bun binary whose spawn costs ~1s and leaves a
+/// session transcript we delete afterwards, so the 60s poll tick must not
+/// respawn it. User-initiated reads (toggle-on, Reauthorize) force a spawn.
+enum ClaudeUsageCLIReader {
+    /// Routing result, so the caller can tell "no CLI on this Mac" (OAuth
+    /// fallback still applies) from "CLI failed" (keep last-known numbers;
+    /// do NOT drop to the keychain path behind the user's back).
+    enum Result {
+        /// Fresh (or within-floor cached) CLI data.
+        case quota(AgentQuota)
+        /// CLI exists but the spawn/parse failed — transient; keep showing
+        /// the last-known snapshot.
+        case failed
+        /// No `claude` executable found.
+        case noCLI
+    }
+
+    /// Serializes spawns and holds the 15-minute background floor + the last
+    /// good snapshot. `force` (user gesture) always respawns.
+    private actor SpawnGate {
+        private var lastSpawn = Date.distantPast
+        private var cached: AgentQuota?
+        private var binary: String??
+        private static let backgroundFloor: TimeInterval = 15 * 60
+
+        func read(force: Bool) async -> Result {
+            let bin = resolveBinary()
+            guard let bin else { return .noCLI }
+            if !force, let cached,
+               Date().timeIntervalSince(lastSpawn) < Self.backgroundFloor {
+                return .quota(cached)
+            }
+            lastSpawn = Date()
+            let fresh = await ClaudeUsageCLIReader.spawnAndParse(binary: bin)
+            if let fresh {
+                cached = fresh
+                return .quota(fresh)
+            }
+            // Spawn failed: serve the stale cache if we have one (the bar
+            // keeps moving on the next floor window), otherwise failed.
+            if let cached { return .quota(cached) }
+            return .failed
+        }
+
+        /// Path to the `claude` executable, resolved once. GUI apps launched
+        /// from Finder don't inherit the login shell's PATH, so probe the
+        /// same common locations `AgentPresence.commandExists` uses, plus
+        /// fnm's per-node-version install dirs (this Mac's layout).
+        private func resolveBinary() -> String? {
+            if let cached = binary { return cached }
+            let found = ClaudeUsageCLIReader.findClaudeBinary()
+            binary = .some(found)
+            return found
+        }
+    }
+    private static let gate = SpawnGate()
+
+    /// Background-safe read: CLI-first, spawn-throttled. `force` bypasses the
+    /// 15-minute floor (Reauthorize button, toggle-on).
+    static func read(force: Bool) async -> Result {
+        await gate.read(force: force)
+    }
+
+    /// Probe the process PATH first, then the usual install locations.
+    /// Returns the first executable hit, nil when Claude Code isn't installed.
+    static func findClaudeBinary(
+        environment: [String: String] = ProcessInfo.processInfo.environment
+    ) -> String? {
+        let fm = FileManager.default
+        let home = fm.homeDirectoryForCurrentUser.path
+        var dirs: [String] = []
+        if let path = environment["PATH"] {
+            dirs.append(contentsOf: path.split(separator: ":").map(String.init))
+        }
+        dirs.append(contentsOf: [
+            "\(home)/.claude/local",
+            "/opt/homebrew/bin", "/usr/local/bin",
+            "\(home)/.local/bin", "\(home)/bin",
+            "\(home)/.npm-global/bin", "\(home)/.volta/bin",
+        ])
+        // fnm keeps one install per node version; any of them works (the
+        // binary is a self-contained Bun executable).
+        let fnmRoot = "\(home)/.local/share/fnm/node-versions"
+        if let versions = try? fm.contentsOfDirectory(atPath: fnmRoot) {
+            for v in versions.sorted().reversed() {
+                dirs.append("\(fnmRoot)/\(v)/installation/bin")
+            }
+        }
+        for dir in dirs {
+            let candidate = "\(dir)/claude"
+            if fm.isExecutableFile(atPath: candidate) { return candidate }
+        }
+        return nil
+    }
+
+    /// Spawn `claude /usage` in a throwaway working directory, parse stdout.
+    /// The CLI insists on writing a session transcript under
+    /// `~/.claude/projects/<cwd-slug>/` even for this local command — we
+    /// remove that directory afterwards (only when WE created it).
+    private static func spawnAndParse(binary: String) async -> AgentQuota? {
+        let fm = FileManager.default
+        let probeDir = fm.temporaryDirectory
+            .appendingPathComponent("ctrixin-claude-usage-\(UUID().uuidString.lowercased())")
+        guard let _ = try? fm.createDirectory(at: probeDir, withIntermediateDirectories: true) else {
+            return nil
+        }
+        defer { try? fm.removeItem(at: probeDir) }
+
+        // Claude Code's projects-dir slug: the RESOLVED cwd with "/", ".",
+        // and "_" all mapped to "-". Verified against 2.1.x output.
+        let realCwd = probeDir.resolvingSymlinksInPath().path
+        let slug = realCwd.replacingOccurrences(of: "/", with: "-")
+            .replacingOccurrences(of: ".", with: "-")
+            .replacingOccurrences(of: "_", with: "-")
+        let projectsDir = fm.homeDirectoryForCurrentUser
+            .appendingPathComponent(".claude/projects/\(slug)")
+        let projectsDirExisted = fm.fileExists(atPath: projectsDir.path)
+        defer {
+            if !projectsDirExisted {
+                try? fm.removeItem(at: projectsDir)
+            }
+        }
+
+        guard let stdout = await run(binary: binary, cwd: probeDir, timeout: 20) else {
+            return nil
+        }
+        return parse(stdout)
+    }
+
+    /// Minimal process runner (same watchdog shape as GitService's
+    /// `captureProcess`, which is file-private there): pipes drained on a
+    /// concurrent queue, SIGTERM → SIGKILL timeout, nil on any non-zero exit.
+    private static func run(binary: String, cwd: URL, timeout: TimeInterval) async -> String? {
+        await withCheckedContinuation { (cont: CheckedContinuation<String?, Never>) in
+            DispatchQueue.global(qos: .userInitiated).async {
+                let proc = Process()
+                proc.executableURL = URL(fileURLWithPath: binary)
+                proc.arguments = ["/usage"]
+                proc.currentDirectoryURL = cwd
+                proc.standardInput = FileHandle.nullDevice
+
+                var env = ProcessInfo.processInfo.environment
+                // The binary is self-contained (Bun); prepend its own dir so a
+                // shim-wrapped install still resolves its siblings. The rest of
+                // the user's env passes through untouched.
+                let binDir = URL(fileURLWithPath: binary).deletingLastPathComponent().path
+                let existing = env["PATH"]?.split(separator: ":").map(String.init) ?? []
+                env["PATH"] = ([binDir] + existing + ["/usr/bin", "/bin"]).joined(separator: ":")
+                // A quota probe must never stall on (or trigger) an update check.
+                env["DISABLE_AUTOUPDATER"] = "1"
+                proc.environment = env
+
+                let outPipe = Pipe()
+                proc.standardOutput = outPipe
+                proc.standardError = FileHandle.nullDevice
+                do {
+                    try proc.run()
+                } catch {
+                    cont.resume(returning: nil)
+                    return
+                }
+
+                var outData = Data()
+                let group = DispatchGroup()
+                let q = DispatchQueue(label: "app.glint.claude-usage.read", attributes: .concurrent)
+                q.async(group: group) { outData = outPipe.fileHandleForReading.readDataToEndOfFile() }
+
+                let pid = proc.processIdentifier
+                let killer = DispatchWorkItem {
+                    if proc.isRunning { kill(pid, SIGKILL) }
+                }
+                let watchdog = DispatchWorkItem {
+                    guard proc.isRunning else { return }
+                    kill(pid, SIGTERM)
+                    DispatchQueue.global().asyncAfter(deadline: .now() + .seconds(2), execute: killer)
+                }
+                DispatchQueue.global().asyncAfter(
+                    deadline: .now() + .milliseconds(Int(timeout * 1000)), execute: watchdog)
+                group.wait()
+                proc.waitUntilExit()
+                watchdog.cancel()
+                killer.cancel()
+
+                guard proc.terminationReason == .exit, proc.terminationStatus == 0 else {
+                    cont.resume(returning: nil)
+                    return
+                }
+                cont.resume(returning: String(decoding: outData, as: UTF8.self))
+            }
+        }
+    }
+
+    // MARK: Parsing (pure functions — unit-testable without spawning)
+
+    /// Parse `claude /usage` stdout (2.1.x shape):
+    ///
+    ///     Current session: 24% used · resets Aug 25 at 3pm (Asia/Singapore)
+    ///     Current week (all models): 22% used · resets Aug 27 at 11am (Asia/Singapore)
+    ///     Current week (Fable): 43% used · resets Aug 27 at 11am (Asia/Singapore)
+    ///
+    /// Returns nil when the session line is missing (not logged in, older CLI,
+    /// headless refusal) so the caller can degrade to last-known numbers.
+    static func parse(_ text: String, now: Date = .init()) -> AgentQuota? {
+        var session: (percent: Double, reset: String?)?
+        var weekly: (percent: Double, reset: String?)?
+        var scoped: [ScopedQuota] = []
+
+        for rawLine in text.split(separator: "\n") {
+            let line = rawLine.trimmingCharacters(in: .whitespaces)
+            if let hit = parseUsageLine(line, prefix: "Current session:") {
+                session = hit
+            } else if let hit = parseUsageLine(line, prefix: "Current week (all models):") {
+                weekly = hit
+            } else if line.hasPrefix("Current week ("),
+                      let closeParen = line.firstIndex(of: ")") {
+                let name = String(line[line.index(line.startIndex, offsetBy: "Current week (".count)..<closeParen])
+                if !name.isEmpty, name != "all models",
+                   let hit = parseUsageLine(line[line.index(after: closeParen)...].trimmingCharacters(in: .whitespaces), prefix: ":") {
+                    scoped.append(ScopedQuota(
+                        name: name,
+                        percent: hit.percent,
+                        resetsAt: hit.reset.flatMap {
+                            parseResetDate($0, now: now, maxAhead: 8 * 24 * 3600)
+                        }))
+                }
+            }
+        }
+
+        guard let session else { return nil }
+        return AgentQuota(
+            sessionPercent: session.percent,
+            weeklyPercent: weekly?.percent,
+            sessionResetsAt: session.reset.flatMap {
+                parseResetDate($0, now: now, maxAhead: 6 * 3600)
+            },
+            weeklyResetsAt: weekly?.reset.flatMap {
+                parseResetDate($0, now: now, maxAhead: 8 * 24 * 3600)
+            },
+            planType: nil,
+            scopedWeekly: scoped.isEmpty ? nil : scoped
+        )
+    }
+
+    /// Extract `NN% used` and an optional `resets <text>` tail from one line.
+    /// `prefix` is the leading label to strip (":" for the scoped-variant
+    /// remainder after the parenthesized name).
+    private static func parseUsageLine(_ line: String, prefix: String) -> (percent: Double, reset: String?)? {
+        guard line.hasPrefix(prefix) else { return nil }
+        var rest = String(line.dropFirst(prefix.count)).trimmingCharacters(in: .whitespaces)
+        // "24% used · resets …" — percent ends at the first "%".
+        guard let pctEnd = rest.firstIndex(of: "%") else { return nil }
+        guard let percent = Double(rest[rest.startIndex..<pctEnd]), percent.isFinite else { return nil }
+        rest = String(rest[rest.index(after: pctEnd)...]).trimmingCharacters(in: .whitespaces)
+        guard rest.hasPrefix("used") else { return nil }
+        rest = String(rest.dropFirst("used".count)).trimmingCharacters(in: .whitespaces)
+        // Optional "· resets <text>" tail (middle dot or bullet).
+        if let range = rest.range(of: #"^[\·\•\-–]?\s*resets?\s+"#, options: .regularExpression) {
+            let tail = String(rest[range.upperBound...]).trimmingCharacters(in: .whitespaces)
+            return (percent, tail.isEmpty ? nil : tail)
+        }
+        return (percent, nil)
+    }
+
+    /// Parse a reset caption like "Aug 25 at 3pm (Asia/Singapore)" into a
+    /// Date. The CLI omits the year; resolve against the current year in the
+    /// caption's time zone, rolling to next year when this year's occurrence
+    /// already passed (Dec → Jan boundary). Returns nil when the parsed date
+    /// is implausible for the window (`maxAhead`) — a wrong countdown is worse
+    /// than none.
+    static func parseResetDate(_ raw: String, now: Date = .init(), maxAhead: TimeInterval) -> Date? {
+        var text = raw.trimmingCharacters(in: .whitespaces)
+        // Trailing "(Zone/Name)" — the CLI always appends one, but tolerate
+        // its absence (current zone then).
+        var timeZone = TimeZone.current
+        if let open = text.lastIndex(of: "("), text.hasSuffix(")") {
+            let zoneName = String(text[text.index(after: open)..<text.index(before: text.endIndex)])
+            if let tz = TimeZone(identifier: zoneName) ?? TimeZone(abbreviation: zoneName) {
+                timeZone = tz
+            }
+            text = String(text[..<open]).trimmingCharacters(in: .whitespaces)
+        }
+        // Note: the CLI prints lowercase "3pm"; DateFormatter's "a" already
+        // parses it case-insensitively, so no normalization is needed here.
+
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = timeZone
+        // Yearless parses default to 1970 unless a defaultDate supplies one.
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = timeZone
+        formatter.defaultDate = calendar.date(from: DateComponents(year: 2000, month: 1, day: 1))
+
+        let formats = ["MMM d 'at' h:mma", "MMM d 'at' ha", "MMM d, h:mma", "MMM d, ha"]
+        for format in formats {
+            formatter.dateFormat = format
+            guard let parsed = formatter.date(from: text) else { continue }
+            var comps = calendar.dateComponents([.month, .day, .hour, .minute], from: parsed)
+            let nowComps = calendar.dateComponents([.year], from: now)
+            comps.year = nowComps.year
+            guard var candidate = calendar.date(from: comps) else { continue }
+            if candidate < now.addingTimeInterval(-120) {
+                comps.year = (nowComps.year ?? 2000) + 1
+                guard let rolled = calendar.date(from: comps) else { continue }
+                candidate = rolled
+            }
+            guard candidate.timeIntervalSince(now) <= maxAhead else { return nil }
+            return candidate
+        }
+        return nil
     }
 }

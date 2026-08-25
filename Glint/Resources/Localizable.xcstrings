@@ -1156,13 +1156,13 @@
         }
       }
     },
-    "Claude rotates its sign-in every few hours. Click to let CtriTerm read the refreshed credentials (one macOS authorization prompt).": {
+    "Claude's sign-in rotates every few hours. Click to refresh the quota now — via the Claude CLI when available (no prompt), otherwise one macOS keychain prompt.": {
       "extractionState": "manual",
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "Claude 的登录态每隔几小时轮换一次。点此让 CtriTerm 读取刷新后的凭据（会弹一次 macOS 授权框）。"
+            "value": "Claude 的登录态每隔几小时轮换一次。点此立即刷新配额 —— 有 Claude CLI 的机器不会弹窗，否则会弹一次 macOS 钥匙串授权。"
           }
         }
       }
