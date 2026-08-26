@@ -19,10 +19,9 @@ those commits without including the files that define this distribution.
 ## Daily use: use only CtriTerm
 
 CtriTerm is the local app's user-facing name and is installed at
-`/Applications/CtriTerm.app` (`0.1.27-ctrixin.400`; `.403` is built and
-published, pending install). It replaced the prior
+`/Applications/CtriTerm.app` (`0.1.27-ctrixin.403`). It replaced the prior
 `CtriXin Glint.app` while retaining the same internal identity and all existing
-local state. The installed `.400` release is Developer ID signed, Apple
+local state. The installed `.403` release is Developer ID signed, Apple
 notarized, and stapled, so it passes normal Gatekeeper verification on another
 Mac.
 
