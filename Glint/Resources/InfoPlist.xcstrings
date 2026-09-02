@@ -1,6 +1,42 @@
 {
   "sourceLanguage": "en",
   "strings": {
+    "NSDesktopFolderUsageDescription": {
+      "comment": "TCC purpose string shown in the macOS privacy permission prompt.",
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CtriTerm 运行的 shell 命令可能需要访问“桌面”文件夹中的文件。"
+          }
+        }
+      }
+    },
+    "NSDocumentsFolderUsageDescription": {
+      "comment": "TCC purpose string shown in the macOS privacy permission prompt.",
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CtriTerm 运行的 shell 命令可能需要访问“文稿”文件夹中的文件。"
+          }
+        }
+      }
+    },
+    "NSDownloadsFolderUsageDescription": {
+      "comment": "TCC purpose string shown in the macOS privacy permission prompt.",
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "CtriTerm 运行的 shell 命令可能需要访问“下载”文件夹中的文件。"
+          }
+        }
+      }
+    },
     "NSLocalNetworkUsageDescription": {
       "comment": "Shown by macOS when Glint first reaches the local network for the web remote.",
       "extractionState": "manual",

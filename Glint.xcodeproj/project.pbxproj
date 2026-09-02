@@ -46,7 +46,6 @@
 		6290F26DFE2D0D5E1FEB9FA9 /* GitRefreshCoordinator.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBB695363FAF3A996EF0C9FF /* GitRefreshCoordinator.swift */; };
 		632C9446752A79B9C95A5D0D /* addon-fit-LICENSE.txt in Resources */ = {isa = PBXBuildFile; fileRef = 677808A57BE53607DA391FC8 /* addon-fit-LICENSE.txt */; };
 		692D1A7D490E07D796535EAA /* UpdaterController.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4408F9761E584DE2AB6630E2 /* UpdaterController.swift */; };
-		69AA1F43C3E5F98A78065DD9 /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = 5A1D09D9C0EEB801B8BD44B3 /* InfoPlist.strings */; };
 		6B6B183329BCCDE5474D88AF /* web-remote.css in Resources */ = {isa = PBXBuildFile; fileRef = ABF0871355239B5D7C80B719 /* web-remote.css */; };
 		6BE78104E4CC97417ED400B4 /* xterm.mjs in Resources */ = {isa = PBXBuildFile; fileRef = 36D0A3B6CB143C412B8EDA7B /* xterm.mjs */; };
 		6D74FE6545631EB8193C82E1 /* PaneView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08FC2FBC9E8729A5ECBF857C /* PaneView.swift */; };
@@ -133,7 +132,6 @@
 		0D751E30DFF2EFA6F705A374 /* GhosttyTickSchedulerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GhosttyTickSchedulerTests.swift; sourceTree = "<group>"; };
 		0F58E2127BAE2C9F5155CF07 /* DevinHookInstallerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DevinHookInstallerTests.swift; sourceTree = "<group>"; };
 		0FBF22AEC81DBE92987A8CB4 /* CodexUsageReaderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodexUsageReaderTests.swift; sourceTree = "<group>"; };
-		12D6B92D6490727355D940E2 /* en */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = en; path = en.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		150EEF32284061D527E51866 /* GlintTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GlintTheme.swift; sourceTree = "<group>"; };
 		16137B405E48DBE262A15B6D /* PaneSurfaceRepresentable.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PaneSurfaceRepresentable.swift; sourceTree = "<group>"; };
 		1CD90B7C77381E05E8A2BA8C /* ghostty */ = {isa = PBXFileReference; lastKnownFileType = folder; name = ghostty; path = GhosttyResources/ghostty; sourceTree = SOURCE_ROOT; };
@@ -144,7 +142,6 @@
 		25DADCEBA9C483C729B69388 /* Glint.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = Glint.entitlements; sourceTree = "<group>"; };
 		26141150D2DB4C0589558ECC /* CodexHookInstallerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CodexHookInstallerTests.swift; sourceTree = "<group>"; };
 		265A192AC9BD06DB09346E90 /* AgentHookInstaller.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgentHookInstaller.swift; sourceTree = "<group>"; };
-		270C724299D291C5F8E6E97F /* zh-Hans */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = "zh-Hans"; path = "zh-Hans.lproj/InfoPlist.strings"; sourceTree = "<group>"; };
 		2B1F1216422BE2A4234ABA44 /* nerd-fonts-LICENSE.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "nerd-fonts-LICENSE.txt"; sourceTree = "<group>"; };
 		2C85E16653B066382F22FEDD /* crypto-LICENSE.txt */ = {isa = PBXFileReference; lastKnownFileType = text; path = "crypto-LICENSE.txt"; sourceTree = "<group>"; };
 		2CFFB91CE5C44976A6961F1F /* ReviewDiffParsingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ReviewDiffParsingTests.swift; sourceTree = "<group>"; };
@@ -275,7 +272,6 @@
 				C8CE97CEC40ECB2954522DD7 /* InfoPlist.xcstrings */,
 				376568363043C189904E4E0A /* Localizable.xcstrings */,
 				6860F8F626EFDB9A289FC727 /* themes.json */,
-				5A1D09D9C0EEB801B8BD44B3 /* InfoPlist.strings */,
 				A4271BA2785D3733E2F3908E /* ShellIntegration */,
 				1373E19D4E0CF52B745B7F83 /* WebRemote */,
 			);
@@ -579,7 +575,6 @@
 			files = (
 				A91EFEF0FEA392A0745724DE /* AppIcon.icon in Resources */,
 				942ED7C1C1A2E823BA52F67A /* Assets.xcassets in Resources */,
-				69AA1F43C3E5F98A78065DD9 /* InfoPlist.strings in Resources */,
 				97FE40619FD0C44784E91017 /* InfoPlist.xcstrings in Resources */,
 				FCB67525DF16A4DCF9B2AF7A /* Localizable.xcstrings in Resources */,
 				09AAB5DF2BA70FCAADAB4C2C /* SymbolsNerdFontMono-Regular.ttf in Resources */,
@@ -708,15 +703,6 @@
 /* End PBXTargetDependency section */
 
 /* Begin PBXVariantGroup section */
-		5A1D09D9C0EEB801B8BD44B3 /* InfoPlist.strings */ = {
-			isa = PBXVariantGroup;
-			children = (
-				12D6B92D6490727355D940E2 /* en */,
-				270C724299D291C5F8E6E97F /* zh-Hans */,
-			);
-			name = InfoPlist.strings;
-			sourceTree = "<group>";
-		};
 /* End PBXVariantGroup section */
 
 /* Begin XCBuildConfiguration section */
