@@ -59,8 +59,8 @@
 		81532B36FEC3039B8EAD9CB1 /* AgentKindResolutionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4EEF00CBEF45A9D60423A207 /* AgentKindResolutionTests.swift */; };
 		930665E39CE84564CBF9D300 /* GlintTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 150EEF32284061D527E51866 /* GlintTheme.swift */; };
 		942ED7C1C1A2E823BA52F67A /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = 3023490E670A10EC38870B12 /* Assets.xcassets */; };
-		990AF00FA16B7C782837CD39 /* ExceptionBackstopTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C23701EE5764B29B1104B4D4 /* ExceptionBackstopTests.swift */; };
 		97FE40619FD0C44784E91017 /* InfoPlist.xcstrings in Resources */ = {isa = PBXBuildFile; fileRef = C8CE97CEC40ECB2954522DD7 /* InfoPlist.xcstrings */; };
+		990AF00FA16B7C782837CD39 /* ExceptionBackstopTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C23701EE5764B29B1104B4D4 /* ExceptionBackstopTests.swift */; };
 		9A5EC6D5F8F65EE762FCD917 /* addon-fit.mjs in Resources */ = {isa = PBXBuildFile; fileRef = 5DB06D8C68CA7B9C7E1E83E7 /* addon-fit.mjs */; };
 		9C8BC416E070194670E97100 /* AccessibilityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01DD41E0F48A7A20C41F3AE6 /* AccessibilityTests.swift */; };
 		9F605AB2DC185A94ED28E6D4 /* AgentChoice.swift in Sources */ = {isa = PBXBuildFile; fileRef = F3EB9A1E80F3CC4BCA468774 /* AgentChoice.swift */; };
@@ -702,9 +702,6 @@
 		};
 /* End PBXTargetDependency section */
 
-/* Begin PBXVariantGroup section */
-/* End PBXVariantGroup section */
-
 /* Begin XCBuildConfiguration section */
 		130074BCE1A72D62A77E00B9 /* Debug */ = {
 			isa = XCBuildConfiguration;
@@ -719,7 +716,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.ctrixin.glint.tests;
 				SDKROOT = macosx;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Glint.app/Contents/MacOS/Glint";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/CtriTerm.app/Contents/MacOS/CtriTerm";
 			};
 			name = Debug;
 		};
@@ -852,7 +849,7 @@
 				);
 				PRODUCT_BUNDLE_IDENTIFIER = com.ctrixin.glint.tests;
 				SDKROOT = macosx;
-				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/Glint.app/Contents/MacOS/Glint";
+				TEST_HOST = "$(BUILT_PRODUCTS_DIR)/CtriTerm.app/Contents/MacOS/CtriTerm";
 			};
 			name = Release;
 		};

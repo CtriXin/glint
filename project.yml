@@ -99,3 +99,8 @@ targets:
       base:
         PRODUCT_BUNDLE_IDENTIFIER: com.ctrixin.glint.tests
         GENERATE_INFOPLIST_FILE: YES
+        # The app target's PRODUCT_NAME is CtriTerm; xcodegen derives the
+        # default TEST_HOST from the target *name* (Glint.app) and the test
+        # host then can't be found. Point it at the renamed product.
+        TEST_HOST: "$(BUILT_PRODUCTS_DIR)/CtriTerm.app/Contents/MacOS/CtriTerm"
+        BUNDLE_LOADER: "$(TEST_HOST)"
