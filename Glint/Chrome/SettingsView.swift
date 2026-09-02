@@ -1740,6 +1740,12 @@ private struct AgentsPane: View {
                 }
             }
             SettingsDivider()
+            SettingsRow("Show usage in sidebar",
+                        subtitle: "Display Grok's weekly usage credits in the sidebar. Reads the token `grok login` keeps in ~/.grok — team plans report no numbers on this surface, so the row stays hidden there.") {
+                Toggle("", isOn: $usage.grokEnabled)
+                    .toggleStyle(.switch).labelsHidden()
+            }
+            SettingsDivider()
             SettingsRow("Resume session on launch",
                         subtitle: "When Glint reopens, each pane that was running Grok at last quit is resumed via `grok --resume <session-id>` — so multiple Grok panes in one workspace land back in their own sessions. Falls back to `grok --continue` for panes whose session id wasn't captured.") {
                 Toggle("", isOn: $store.restoreGrokSession)

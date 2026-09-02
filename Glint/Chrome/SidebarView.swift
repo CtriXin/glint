@@ -99,6 +99,7 @@ struct SidebarView: View {
 
                 VStack(spacing: 0) {
                     QuotaSection(claude: usage.claude,
+                                 grok: usage.grok,
                                  codexHomes: usage.codexSidebarQuotas,
                                  claudeNeedsReauth: usage.claudeNeedsReauth,
                                  reauthorizeClaude: usage.reauthorizeClaude)
@@ -395,6 +396,7 @@ struct SidebarView: View {
 private struct QuotaSection: View {
     @Environment(WorkspaceStore.self) private var store
     let claude: AgentQuota?
+    let grok: AgentQuota?
     let codexHomes: [CodexSidebarQuota]
     /// Claude's cached token was rejected (Claude Code rotated credentials)
     /// and only a user-gesture keychain read can recover — show the
@@ -405,10 +407,14 @@ private struct QuotaSection: View {
     /// Brand fills, matching the sidebar mascot shadows.
     private static let claudeColor = Color(red: 235/255, green: 140/255, blue: 82/255)
     private static let codexColor = Color(red: 82/255, green: 97/255, blue: 255/255)
+    /// xAI keeps Grok monochrome, so pick a violet that reads as "Grok" next
+    /// to the warm Claude orange and cool Codex blue without impersonating
+    /// either.
+    private static let grokColor = Color(red: 157/255, green: 134/255, blue: 255/255)
     private static let warnColor = Color(red: 1.0, green: 0.745, blue: 0.18) // #FFBE2E
 
     var body: some View {
-        if claude == nil && codexHomes.isEmpty && !claudeNeedsReauth {
+        if claude == nil && grok == nil && codexHomes.isEmpty && !claudeNeedsReauth {
             EmptyView()
         } else {
             VStack(spacing: 10) {
@@ -438,6 +444,12 @@ private struct QuotaSection: View {
                     }
                     .buttonStyle(.plain)
                     .help("Claude's sign-in rotates every few hours. Click to refresh the quota now — via the Claude CLI when available (no prompt), otherwise one macOS keychain prompt.")
+                }
+                if let grok {
+                    QuotaRow(name: "Grok",
+                             iconAsset: MascotAsset.grok(for: nil),
+                             quota: grok,
+                             color: Self.grokColor, warn: Self.warnColor)
                 }
                 ForEach(codexHomes) { item in
                     QuotaRow(name: item.name,
