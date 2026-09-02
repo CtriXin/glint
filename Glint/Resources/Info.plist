@@ -39,6 +39,8 @@
 	<string>CtriTerm runs shell commands that may need to access files in your Downloads folder.</string>
 	<key>NSLocalNetworkUsageDescription</key>
 	<string>CtriTerm uses your local network to let authenticated devices control shared terminals.</string>
+	<key>NSMicrophoneUsageDescription</key>
+	<string>A program running in a CtriTerm terminal is requesting access to your microphone.</string>
 	<key>NSPrincipalClass</key>
 	<string>NSApplication</string>
 	<key>SUEnableAutomaticChecks</key>

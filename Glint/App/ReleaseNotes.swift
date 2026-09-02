@@ -52,6 +52,52 @@ enum ReleaseNotes {
     /// "发版「更新内容」" for the release-time workflow.
     static let all: [ReleaseNote] = [
         ReleaseNote(
+            version: "0.1.28-beta.4",
+            en: [
+                "Panes no longer get stranded when the layout changes. Two problems that came back in beta.2 and beta.3: after switching workspaces, a pane could keep showing the previous workspace's terminal until you relaunched Glint, and after closing or splitting panes, one side could stop resizing when you dragged the divider. Terminals are now handed between containers explicitly instead of racing for them.",
+                "VoiceOver and other accessibility tools now read the visible screen instead of the entire scrollback. Reading stays fast however much history a terminal has piled up, and that history — old tokens and secrets included — is no longer handed to any tool that asks for it. To read something that has scrolled off, scroll it back into view."
+            ],
+            zh: [
+                "布局变化不再让窗格「掉线」。beta.2 和 beta.3 上复发的两个问题：切换工作区后，窗格可能一直显示上一个工作区的终端，直到重启 Glint；关闭或拆分窗格后，拖动分割线可能有一侧不再跟着变化。终端现在在容器之间显式交接，不再靠抢。",
+                "VoiceOver 等辅助工具现在读取的是屏幕可视区，而不是整个滚动历史。无论终端积累了多少历史，朗读都保持流畅；这些历史内容（包括滚上去的旧 token 和密钥）也不再交给任何前来索取的辅助工具。想读已经滚出屏幕的内容，把它滚回可视区即可。"
+            ]
+        ),
+        ReleaseNote(
+            version: "0.1.28-beta.3",
+            en: [
+                "Dictation and voice input now work in a terminal. Glint exposes each pane as a standard text area, so hotkey dictation — the system's own, Qianwen, and friends — types straight into the terminal instead of falling back to its \"no text field here\" popup. Dictated text goes through the same input path as the keyboard, and anything a shell would execute on the spot (newlines, control characters) is refused rather than run.",
+                "VoiceOver can read a terminal: its contents, the current selection, and line-by-line navigation, with emoji and CJK text landing at the right offsets."
+            ],
+            zh: [
+                "终端现在支持听写和语音输入。Glint 把每个窗格暴露为标准文本区，系统听写、千问等快捷键听写会直接把文字打进终端，不再弹「这里没有输入框」的备用菜单。听写文本走的是和键盘一样的输入通道；换行、控制字符这类 shell 会立刻执行的内容会被拒绝，不会被执行。",
+                "VoiceOver 现在可以朗读终端：内容、当前选中的文本，以及逐行导航，emoji 和中日韩文字的位置也不会再错位。"
+            ]
+        ),
+        ReleaseNote(
+            version: "0.1.28-beta.2",
+            en: [
+                "Typing Chinese — or any other IME language — into the web remote from an iPhone or iPad no longer drops the composed text.",
+                "Long-pressing in the web remote on iPhone and iPad now brings up the system selection and paste menu, so you can paste into a terminal from your phone."
+            ],
+            zh: [
+                "在 iPhone / iPad 上通过网页远程输入中文（以及其它需要输入法的语言）不再丢字。",
+                "iPhone / iPad 上网页远程长按可以正常呼出系统的选择与粘贴菜单，终于能从手机往终端里粘贴内容了。"
+            ]
+        ),
+        ReleaseNote(
+            version: "0.1.28-beta.1",
+            en: [
+                "Switching workspaces no longer leaves a pane showing the previous workspace's terminal — a pane that lost its surface to a recycled container now reclaims it instead of waiting for a relaunch.",
+                "Programs run inside a Glint terminal can now ask for microphone access; the request used to be denied outright instead of showing a prompt.",
+                "The agent turn timer stops when the turn does. Both the sidebar and the pane summary now freeze at the turn's total time instead of counting up forever or hiding the number."
+            ],
+            zh: [
+                "切换工作区后，窗格不再显示上一个工作区的终端 —— 容器被回收导致丢失画面的窗格会自行重新接管，不用再重启应用。",
+                "终端里运行的程序现在可以申请麦克风权限；此前这类请求会被直接拒绝，连授权框都弹不出来。",
+                "Agent 回合计时器会随回合结束而停止。侧边栏和窗格摘要现在都会停在这一回合的总耗时，不再一直往上走、也不再直接把数字藏掉。"
+            ]
+        ),
+        ReleaseNote(
             version: "0.1.27-ctrixin.403",
             en: [
                 "Claude quota with zero password prompts — for real this time. CtriTerm now reads usage through the Claude CLI itself (which owns its own keychain access) instead of asking macOS for Claude's credentials. The sidebar refreshes quietly in the background: no dialogs, and no Reauthorize button needed on Macs with the Claude CLI installed."

@@ -363,7 +363,14 @@ struct Workspace: Identifiable, Codable {
 
         if let tabs = try? c.decode([WorkspaceTab].self, forKey: .tabs), !tabs.isEmpty {
             self.tabs = tabs
-            self.selectedTabID = (try? c.decode(TabID.self, forKey: .selectedTabID)) ?? tabs[0].id
+            // A selection naming no existing tab leaves `selectedTab` nil, and
+            // everything downstream degrades from there: `currentRoot` falls
+            // back to a synthetic leaf while `isPaneVisible` answers false for
+            // every pane — which `SurfaceAttachGate` reads as "this tree is on
+            // its way out", so the pane it still renders never gets a surface
+            // and stays blank. Snap a dangling selection back to the first tab.
+            let decodedTabID = (try? c.decode(TabID.self, forKey: .selectedTabID)) ?? tabs[0].id
+            self.selectedTabID = tabs.contains { $0.id == decodedTabID } ? decodedTabID : tabs[0].id
             let maxSeq = tabs.map(\.id.value).max() ?? 0
             self.nextTabSeq = (try? c.decode(UInt32.self, forKey: .nextTabSeq))
                 .map { Swift.max($0, maxSeq + 1) } ?? (maxSeq + 1)
@@ -4300,21 +4307,26 @@ extension WorkspaceStore {
         agentSummary(for: workspace)?.status
     }
 
-    /// Same as `agentStatusSummary` but also returns when the winning pane
-    /// last transitioned, so the sidebar card can show a live turn timer.
-    func agentSummary(for workspace: Workspace) -> (status: PaneAgentStatus, since: Date)? {
-        var best: (PaneAgentStatus, Date)?
+    /// Same as `agentStatusSummary` but also returns the winning pane's turn
+    /// start and last transition, so the sidebar card can run a turn timer
+    /// while the turn runs and freeze it once the turn ends.
+    func agentSummary(for workspace: Workspace)
+        -> (status: PaneAgentStatus, since: Date, updatedAt: Date)? {
+        var best: (status: PaneAgentStatus, since: Date, updatedAt: Date)?
         for paneID in workspace.panes.keys {
             let key = WorkspacePaneKey(workspace: workspace.id, pane: paneID)
             guard let entry = paneAgentState[key] else { continue }
             // `since` is the turn start (not last status change) so the sidebar
             // timer shows total turn elapsed time, not per-tool-call time.
             if let cur = best {
-                let merged = mergeStatus(cur.0, entry.status)
-                // Take the timestamp from whichever side won the merge.
-                best = (merged, merged == cur.0 ? cur.1 : entry.turnStartedAt)
+                let merged = mergeStatus(cur.status, entry.status)
+                // Take both timestamps from whichever side won the merge —
+                // they have to describe the same turn as the status does.
+                best = merged == cur.status
+                    ? (merged, cur.since, cur.updatedAt)
+                    : (merged, entry.turnStartedAt, entry.updatedAt)
             } else {
-                best = (entry.status, entry.turnStartedAt)
+                best = (entry.status, entry.turnStartedAt, entry.updatedAt)
             }
         }
         return best
@@ -4334,6 +4346,8 @@ extension WorkspaceStore {
         let status: PaneAgentStatus
         /// Turn start — drives the "2m" elapsed label (total turn time).
         let since: Date
+        /// Last hook time — freezes the elapsed label once the turn stops.
+        let updatedAt: Date
         var id: PaneID { paneID }
     }
 
@@ -4343,21 +4357,21 @@ extension WorkspaceStore {
     /// rank, then most-recently-updated — same precedence as the icon merge.
     private func agentPaneBreakdown(ordered: [(pane: PaneID, label: String)],
                                     workspaceID: UUID) -> [AgentPaneInfo] {
-        var out: [(info: AgentPaneInfo, updatedAt: Date)] = []
+        var out: [AgentPaneInfo] = []
         for (idx, item) in ordered.enumerated() {
             let key = WorkspacePaneKey(workspace: workspaceID, pane: item.pane)
             guard let e = paneAgentState[key], e.status != .idle else { continue }
-            out.append((AgentPaneInfo(paneID: item.pane, number: idx + 1,
-                                      label: item.label, kind: e.kind,
-                                      status: e.status, since: e.turnStartedAt),
-                        e.updatedAt))
+            out.append(AgentPaneInfo(paneID: item.pane, number: idx + 1,
+                                     label: item.label, kind: e.kind,
+                                     status: e.status, since: e.turnStartedAt,
+                                     updatedAt: e.updatedAt))
         }
         out.sort {
-            let (ra, rb) = (statusRank($0.info.status), statusRank($1.info.status))
+            let (ra, rb) = (statusRank($0.status), statusRank($1.status))
             if ra != rb { return ra > rb }
             return $0.updatedAt > $1.updatedAt
         }
-        return out.map(\.info)
+        return out
     }
 
     /// Non-idle agent panes in a single tab, numbered left→right within the
@@ -4382,7 +4396,7 @@ extension WorkspaceStore {
     /// A turn is actively running in these states — used to anchor the turn
     /// clock (set on the first non-busy → busy transition, kept through the
     /// turn). `.justCompleted`/`.failed`/`.idle` are turn-end / no-turn.
-    static func isBusyStatus(_ s: PaneAgentStatus) -> Bool {
+    nonisolated static func isBusyStatus(_ s: PaneAgentStatus) -> Bool {
         switch s {
         case .thinking, .tool, .compacting, .needsPermission: return true
         case .justCompleted, .failed, .needsReply, .idle:     return false

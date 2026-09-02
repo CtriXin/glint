@@ -33,14 +33,48 @@ struct SurfaceFocusUpdateGate {
 /// load-bearing for terminal frame pacing.
 final class GhosttySurfaceView: NSView, NSTextInputClient {
 
-    private var surface: ghostty_surface_t?
+    /// Internal (read-only) so the accessibility extension
+    /// (GhosttySurfaceAccessibility.swift) can query the surface; only this
+    /// file re-parents/replaces it.
+    private(set) var surface: ghostty_surface_t?
     /// The newest SwiftUI/AppKit container allowed to host this stable surface.
     /// Split-tree reshapes can briefly leave both the outgoing and incoming
     /// representables alive; the older one must not re-parent the surface back.
     weak var paneHostView: NSView?
     var paneHostGeneration: UInt64 = 0
+    /// A claim that was declined while a recorded host still vetoed, kept so
+    /// the invalidation that dissolves the veto can re-drive it through full
+    /// arbitration (the event-driven side of the recovery in
+    /// `PaneSurfaceRepresentable`). Weak — a dismantled candidate must not be
+    /// kept alive; the visibility closure captures the store weakly because
+    /// the store owns the surfaces and a strong capture would be a cycle.
+    weak var pendingRecoveryHost: NSView?
+    var pendingRecoveryVisibility: (() -> Bool)?
+    /// Bumped on every arm/disarm of the pending recovery. Backstop chains
+    /// capture the epoch at scheduling time and die when it no longer
+    /// matches, so a chain queued for an old claim cannot act after a
+    /// success cleared the pending state or a newer decline re-armed it.
+    var pendingRecoveryEpoch: UInt = 0
+
     private var focusUpdateGate = SurfaceFocusUpdateGate()
     private var trackingArea: NSTrackingArea?
+    /// Visible (viewport) contents for the accessibility layer, shared by the
+    /// overrides in GhosttySurfaceAccessibility.swift. AX clients poll AXValue
+    /// aggressively and `ghostty_surface_read_text` takes the renderer lock,
+    /// so cache with a short TTL. Viewport-scoped rather than the whole screen
+    /// (upstream SurfaceView_AppKit's `cachedScreenContents`) on purpose: the
+    /// viewport is bounded by window size so per-poll reads and
+    /// `accessibilityLine(for:)` walks stay cheap even with a huge scrollback,
+    /// and history contents (old tokens, secrets) are not handed to any AX
+    /// client that asks.
+    private(set) lazy var cachedVisibleContents: CachedValue<String> = .init(duration: .milliseconds(500)) { [weak self] in
+        guard let self, let surface = self.surface else { return "" }
+        var text = ghostty_text_s()
+        let sel = GhosttySurfaceView.viewportSelection()
+        guard ghostty_surface_read_text(surface, sel, &text) else { return "" }
+        defer { ghostty_surface_free_text(surface, &text) }
+        return String(cString: text.text)
+    }
     private var markedTextValue: NSAttributedString = NSAttributedString(string: "")
     /// While non-nil, `insertText`/`doCommand(by:)` divert into this buffer
     /// instead of touching the surface. Used to let the IME observe a chord
@@ -2356,8 +2390,9 @@ final class GhosttySurfaceView: NSView, NSTextInputClient {
     /// newlines (\n / \r — most shells and REPLs execute on CR even inside
     /// bracketed paste when the running program doesn't support it) or C0
     /// control characters other than tab (ESC can rewrite the line, ^C can
-    /// kill the foreground job, etc.).
-    private func injectedTextLooksUnsafe(_ text: String) -> Bool {
+    /// kill the foreground job, etc.). Internal so the accessibility
+    /// extension (GhosttySurfaceAccessibility.swift) can reuse the predicate.
+    func injectedTextLooksUnsafe(_ text: String) -> Bool {
         for scalar in text.unicodeScalars {
             let v = scalar.value
             if v == 0x09 { continue }                 // tab is fine
@@ -2571,7 +2606,10 @@ final class GhosttySurfaceView: NSView, NSTextInputClient {
             // text_input is the IME-aware commit path. Use it for all
             // printable input; surface_text leaves preedit state behind,
             // which ghostty's renderer shows as a white-background highlight.
-            ghostty_surface_text_input(s, ptr, UInt(strlen(ptr)))
+            // UTF-8 length, not strlen: text reaching here can carry an
+            // embedded NUL (AX clients set arbitrary strings), and strlen
+            // would truncate at it. Mirrors injectText.
+            ghostty_surface_text_input(s, ptr, UInt(text.utf8.count))
         }
         markScrollbackDirty()
         // Explicitly clear any residual preedit (commit doesn't always wipe

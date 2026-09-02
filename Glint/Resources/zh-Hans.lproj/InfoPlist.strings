@@ -3,3 +3,4 @@
 "NSDocumentsFolderUsageDescription" = "CtriTerm 运行的 shell 命令可能需要访问“文稿”文件夹中的文件。";
 "NSDownloadsFolderUsageDescription" = "CtriTerm 运行的 shell 命令可能需要访问“下载”文件夹中的文件。";
 "NSLocalNetworkUsageDescription" = "CtriTerm 使用本地网络，让经过认证的设备可以控制共享终端。";
+"NSMicrophoneUsageDescription" = "CtriTerm 终端中运行的程序正在请求使用麦克风。";
