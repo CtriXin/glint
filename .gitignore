@@ -69,3 +69,4 @@ xhs-card-*.png
 
 # Local-only design scratch (HTML approach prototypes, not part of the app).
 _design-prototypes/
+*.profraw
