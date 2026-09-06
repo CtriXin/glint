@@ -873,6 +873,10 @@ private struct WorkspaceCard: View {
             if case .grok = kind { return true }
             return false
         }()
+        let isAgy: Bool = {
+            if case .agy = kind { return true }
+            return false
+        }()
         return Group {
             if isClaude {
                 ClaudeMascotIcon(status: status)
@@ -886,6 +890,14 @@ private struct WorkspaceCard: View {
                 OmpMascotIcon(status: status)
             } else if isGrok {
                 GrokMascotIcon(status: status)
+            } else if isAgy {
+                // No mascot family (yet) — the static brand mark plus the
+                // status dot overlay below keeps panes readable.
+                Image("AgyMark")
+                    .resizable()
+                    .interpolation(.high)
+                    .aspectRatio(contentMode: .fit)
+                    .frame(width: 18, height: 18)
             } else if let sf = kind.sfSymbol {
                 // No squircle container — a bit larger so the bare glyph
                 // holds the same visual weight as the mascots.

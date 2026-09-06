@@ -920,6 +920,9 @@ final class WorkspaceStore: ObservableObject {
     /// Whether Glint's pi extension is installed in `~/.pi/agent/extensions`.
     @Published var piHooksInstalled: Bool = false
 
+    /// Whether Glint's Antigravity hooks are registered in `~/.gemini/config/hooks.json`.
+    var agyHooksInstalled: Bool = false
+
     /// Whether Glint's modified-Enter shell keybindings are present in the
     /// user's shell rc (~/.zshrc / ~/.bashrc). Opt-in, default off.
     @Published var shellKeybindsInstalled: Bool = false
@@ -1106,6 +1109,11 @@ final class WorkspaceStore: ObservableObject {
         didSet { UserDefaults.standard.set(restorePiSession, forKey: "glint.restorePiSession") }
     }
 
+    /// Same as `restoreClaudeSession` but for Antigravity CLI — feeds `agy --continue` / `agy --conversation <id>`.
+    var restoreAgySession: Bool = (UserDefaults.standard.object(forKey: "glint.restoreAgySession") as? Bool) ?? false {
+        didSet { UserDefaults.standard.set(restoreAgySession, forKey: "glint.restoreAgySession") }
+    }
+
     /// Maps each agent kind to the @Published toggle that gates its
     /// session-restore-on-launch. Single source of truth: adding a new
     /// agent means adding ONE entry here, not editing two parallel switches
@@ -1118,6 +1126,7 @@ final class WorkspaceStore: ObservableObject {
         .omp:      \.restoreOmpSession,
         .grok:     \.restoreGrokSession,
         .pi:       \.restorePiSession,
+        .agy:      \.restoreAgySession,
     ]
 
     /// Whether session-restore-on-launch is enabled for `kind`. Used by
@@ -1532,6 +1541,16 @@ final class WorkspaceStore: ObservableObject {
         self.piHooksInstalled = PiHookInstaller.isInstalled()
     }
 
+    func installAgyHooks() {
+        AgyHookInstaller.installIfNeeded(socketPath: AgentBridge.shared.socketPath)
+        self.agyHooksInstalled = AgyHookInstaller.isInstalled()
+    }
+
+    func uninstallAgyHooks() {
+        AgyHookInstaller.uninstall()
+        self.agyHooksInstalled = AgyHookInstaller.isInstalled()
+    }
+
     func installShellKeybinds() {
         ShellKeybindInstaller.install()
         self.shellKeybindsInstalled = ShellKeybindInstaller.isInstalled()
@@ -1552,6 +1571,7 @@ final class WorkspaceStore: ObservableObject {
     var ompDetected: Bool { OmpHookInstaller.isAgentPresent() }
     var grokDetected: Bool { GrokHookInstaller.isAgentPresent() }
     var piDetected: Bool { PiHookInstaller.isAgentPresent() }
+    var agyDetected: Bool { AgyHookInstaller.isAgentPresent() }
 
     /// Locale to inject into the SwiftUI environment. Driven by
     /// `preferredLanguage`. On macOS 14+, SwiftUI re-resolves
@@ -2160,6 +2180,7 @@ final class WorkspaceStore: ObservableObject {
                 approvalsReviewer: info["approvals_reviewer"] as? String
             )
         case "PreCompact":        state.status = .compacting
+        case "PreInvocation":      state.status = .thinking   // Antigravity's per-model-call tick (mid-turn)
         case "Stop":
             // `.justCompleted` persists until the user actually views this
             // pane — see `acknowledgeCompletionIfNeeded(for:)`. This is an
@@ -2593,6 +2614,11 @@ final class WorkspaceStore: ObservableObject {
         // shim's argv to its basename "pi", so the comm/argv we see here is
         // the clean short name.
         if lower == "pi" || lower.hasSuffix("/pi") { return .pi }
+        // Antigravity CLI: the binary is `agy` (three letters — exact/suffix
+        // match only, same discipline as omp/pi, so substrings like "imagy"
+        // don't steal it); the IDE-side processes say "antigravity".
+        if lower.contains("antigravity")
+            || lower == "agy" || lower.hasSuffix("/agy") { return .agy }
         return nil
     }
 
@@ -4135,6 +4161,7 @@ enum WorkspaceIconKind {
     case omp
     case grok
     case pi
+    case agy
     case ssh
     case vim
     case python
@@ -4151,7 +4178,7 @@ enum WorkspaceIconKind {
         case .python: return "chevron.left.forwardslash.chevron.right"
         case .node:   return "hexagon.fill"
         case .git:    return "arrow.triangle.branch"
-        case .claude, .codex, .opencode, .devin, .omp, .grok, .pi, .other:
+        case .claude, .codex, .opencode, .devin, .omp, .grok, .pi, .agy, .other:
             return nil
         }
     }
@@ -4166,6 +4193,7 @@ enum WorkspaceIconKind {
         case .omp:    return "π"
         case .grok:   return "G"
         case .pi:     return "π"
+        case .agy:    return "A"
         case .other(let s):
             return s.first.map { String($0).uppercased() } ?? "?"
         default:
@@ -4442,6 +4470,7 @@ extension WorkspaceStore {
             case .omp: return .omp
             case .grok: return .grok
             case .pi: return .pi
+            case .agy: return .agy
             }
         }
 
@@ -4458,6 +4487,7 @@ extension WorkspaceStore {
         if names.contains(where: { $0 == "omp" || $0.hasSuffix("/omp") }) { return .omp }
         if names.contains(where: { $0 == "grok" || $0.contains("grok") }) { return .grok }
         if names.contains(where: { $0 == "pi" || $0.hasSuffix("/pi") }) { return .pi }
+        if names.contains(where: { $0.contains("antigravity") || $0 == "agy" || $0.hasSuffix("/agy") }) { return .agy }
         if names.contains(where: { $0 == "vim" || $0 == "nvim" || $0 == "vi" }) { return .vim }
         if names.contains(where: { $0 == "python" || $0 == "python3" || $0 == "ipython" }) { return .python }
         if names.contains(where: { $0 == "node" || $0 == "deno" || $0 == "bun" }) { return .node }

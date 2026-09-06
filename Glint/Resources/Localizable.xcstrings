@@ -158,6 +158,17 @@
         }
       }
     },
+    "A named entry in the hooks document agy shares between TUI and backend. Only reports when Glint's pane environment variables are present, so an agy session outside Glint is a no-op.": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "agy 的 TUI 与后端共享的 hooks 文档中的一个命名条目。仅在存在 Glint 窗格环境变量时才上报，因此在 Glint 之外运行的 agy 会话不会受影响。"
+          }
+        }
+      }
+    },
     "A native mac terminal made for AI agents.": {
       "localizations": {
         "zh-Hans": {
@@ -593,6 +604,28 @@
           "stringUnit": {
             "state": "translated",
             "value": "网页远程控制"
+          }
+        }
+      }
+    },
+    "Antigravity CLI detected — install the hook entry to show its status.": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "检测到 Antigravity CLI —— 安装 hook 条目即可显示其状态。"
+          }
+        }
+      }
+    },
+    "Antigravity CLI not detected on this Mac.": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "未在本机检测到 Antigravity CLI。"
           }
         }
       }
@@ -2379,6 +2412,17 @@
         }
       }
     },
+    "Glint registers a named hook entry (\"glint\") in the hooks.json the Antigravity CLI (agy) shares between its TUI and backend, so sessions report thinking, tool calls, and turn completion. Every other hook in that file is preserved; uninstall removes only Glint's entry. Approval prompts stay in agy's own UI (it has no permission hook), so panes never show a needs-approval state.": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Glint 会在 Antigravity CLI（agy）的 TUI 与后端共享的 hooks.json 里注册一个命名条目（\"glint\"），让会话上报思考中、工具调用和回合结束。该文件中的其它 hook 全部保留；卸载只移除 Glint 的条目。审批确认保留在 agy 自己的界面里（它没有权限 hook），因此窗格不会显示「等待确认」状态。"
+          }
+        }
+      }
+    },
     "Glint uses Sparkle to check the GitHub Releases feed and install updates in place.": {
       "extractionState": "stale",
       "localizations": {
@@ -2551,6 +2595,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "Hook 配置"
+          }
+        }
+      }
+    },
+    "Hook entry merged into ~/.gemini/config/hooks.json.": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Hook 条目已合并进 ~/.gemini/config/hooks.json。"
           }
         }
       }
@@ -5408,6 +5463,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "更新内容"
+          }
+        }
+      }
+    },
+    "When Glint reopens, each pane that was running Antigravity at last quit is resumed via `agy --conversation <conversation-id>` — so multiple agy panes in one workspace land back in their own conversations. Falls back to `agy --continue` for panes whose conversation id wasn't captured.": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "Glint 重新打开时，上次退出时正在运行 Antigravity 的窗格会通过 `agy --conversation <conversation-id>` 恢复 —— 同一工作区里的多个 agy 窗格会回到各自的会话，不会挤到最近一个上。未捕获到会话 id 的窗格退回 `agy --continue`。"
           }
         }
       }
