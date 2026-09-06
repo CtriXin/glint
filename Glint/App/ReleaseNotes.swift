@@ -52,6 +52,15 @@ enum ReleaseNotes {
     /// "发版「更新内容」" for the release-time workflow.
     static let all: [ReleaseNote] = [
         ReleaseNote(
+            version: "0.1.28-ctrixin.438",
+            en: [
+                "Grok's sidebar usage row now stays visible on team plans: xAI's billing surface reports no usage numbers for them, so the row shows the weekly window's reset countdown with a “—” in place of a percent (and a tooltip explaining why) instead of disappearing entirely."
+            ],
+            zh: [
+                "Grok 的侧栏用量行在团队套餐下不再消失：xAI 计费接口对团队账号不提供用量数字，因此该行改为显示每周窗口的重置倒计时，百分比位置显示“—”（悬停有解释）。个人/积分账号仍显示真实百分比。"
+            ]
+        ),
+        ReleaseNote(
             version: "0.1.28-ctrixin.435",
             en: [
                 "Grok joins the sidebar usage panel. Enable it in Settings ▸ Agents ▸ Grok and CtriTerm reads your weekly usage credits straight from xAI's billing endpoint with the token `grok login` already keeps on disk — no extra sign-in, no prompts. Team plans don't expose numbers on that surface yet, so the row appears only when there are real numbers to show.",
