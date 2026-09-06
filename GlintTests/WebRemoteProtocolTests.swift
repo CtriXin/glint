@@ -438,19 +438,6 @@ final class WebRemoteProtocolTests: XCTestCase {
         )
     }
 
-    func testPendingPaneSelectionPreventsTerminalSizeRelease() {
-        XCTAssertFalse(
-            WebRemoteServer.shouldReleaseTerminalSize(
-                hasPendingSelection: true
-            )
-        )
-        XCTAssertTrue(
-            WebRemoteServer.shouldReleaseTerminalSize(
-                hasPendingSelection: false
-            )
-        )
-    }
-
     func testHeadResponseKeepsContentLengthWithoutBody() {
         let body = Data("hello".utf8)
         let response = WebRemoteHTTPResponse.make(

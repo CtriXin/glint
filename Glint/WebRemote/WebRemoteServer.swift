@@ -213,10 +213,6 @@ final class WebRemoteServer: @unchecked Sendable {
         pendingPane == pane && pendingGeneration == generation
     }
 
-    static func shouldReleaseTerminalSize(hasPendingSelection: Bool) -> Bool {
-        !hasPendingSelection
-    }
-
     private enum ListenerKind: Hashable {
         case http
         case webSocket
@@ -916,7 +912,8 @@ final class WebRemoteServer: @unchecked Sendable {
         client.pendingSelectionOutput = WebRemoteOutputBuffer(
             byteLimit: Self.maxSelectionOutputBytes
         )
-        client.terminalSize = nil
+        // Order size ownership by request arrival, not asynchronous snapshot completion.
+        recordTerminalSizeLocked(size, for: client)
         updateSubscribedPanesLocked()
         previousPanes.forEach { reconcileTerminalSizeLocked(for: $0) }
 
@@ -952,7 +949,6 @@ final class WebRemoteServer: @unchecked Sendable {
                         )
                         client.pendingPane = nil
                         client.subscribedPane = pane
-                        recordTerminalSizeLocked(size, for: client)
                         updateSubscribedPanesLocked()
                         sendJSON([
                             "type": "snapshot",
@@ -993,6 +989,7 @@ final class WebRemoteServer: @unchecked Sendable {
         else { return }
         _ = client.pendingSelectionOutput.take()
         client.pendingPane = nil
+        client.terminalSize = nil
         updateSubscribedPanesLocked()
         reconcileTerminalSizeLocked(for: pane)
         sendError(error, to: clientID)
@@ -1088,6 +1085,7 @@ final class WebRemoteServer: @unchecked Sendable {
             }
             if client.pendingPane == pane {
                 client.pendingPane = nil
+                client.terminalSize = nil
                 _ = client.pendingSelectionOutput.take()
             }
         }
@@ -1168,19 +1166,18 @@ final class WebRemoteServer: @unchecked Sendable {
 
     private func reconcileTerminalSizeLocked(for pane: String) {
         let size = clients.values
-            .filter { $0.authenticated && $0.subscribedPane == pane && $0.terminalSize != nil }
+            .filter {
+                $0.authenticated
+                    && ($0.subscribedPane == pane || $0.pendingPane == pane)
+                    && $0.terminalSize != nil
+            }
             .max { $0.terminalSizeRevision < $1.terminalSizeRevision }?
             .terminalSize
-        let hasPendingSelection = clients.values.contains {
-            $0.authenticated && $0.pendingPane == pane
-        }
         DispatchQueue.main.async {
             guard let store = WorkspaceStore.current else { return }
-            // Snapshot preparation owns the browser grid until the pending
-            // selection succeeds or fails; releasing here would undo it mid-restore.
             if let size {
                 _ = store.webRemoteSetTerminalSize(pane: pane, size: size)
-            } else if Self.shouldReleaseTerminalSize(hasPendingSelection: hasPendingSelection) {
+            } else {
                 store.webRemoteReleaseTerminalSize(pane: pane)
             }
         }
