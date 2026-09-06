@@ -743,7 +743,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = "0.1.27-ctrixin.1";
+				MARKETING_VERSION = "0.1.28-ctrixin.1";
 				OTHER_LDFLAGS = (
 					"-framework",
 					Metal,
@@ -876,7 +876,7 @@
 					"$(inherited)",
 					"@executable_path/../Frameworks",
 				);
-				MARKETING_VERSION = "0.1.27-ctrixin.1";
+				MARKETING_VERSION = "0.1.28-ctrixin.1";
 				OTHER_LDFLAGS = (
 					"-framework",
 					Metal,

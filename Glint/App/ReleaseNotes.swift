@@ -52,6 +52,17 @@ enum ReleaseNotes {
     /// "发版「更新内容」" for the release-time workflow.
     static let all: [ReleaseNote] = [
         ReleaseNote(
+            version: "0.1.28-ctrixin.435",
+            en: [
+                "Grok joins the sidebar usage panel. Enable it in Settings ▸ Agents ▸ Grok and CtriTerm reads your weekly usage credits straight from xAI's billing endpoint with the token `grok login` already keeps on disk — no extra sign-in, no prompts. Team plans don't expose numbers on that surface yet, so the row appears only when there are real numbers to show.",
+                "Rolls in everything from upstream Glint v0.1.27 through v0.1.28-beta.4: panes no longer get stranded when the layout changes, dictation and VoiceOver now work in terminals (reading the visible screen only — scrolled-back secrets stay private), the web remote handles Chinese IME and long-press paste on iPhone/iPad, and the agent turn timer stops when the turn does."
+            ],
+            zh: [
+                "Grok 加入侧栏用量面板。在「设置 ▸ Agent ▸ Grok」开启后，CtriTerm 用 `grok login` 已存在磁盘上的令牌直接读取 xAI 计费端点的每周用量积分 —— 无需额外登录、不会弹窗。团队套餐暂时不在此接口暴露数字，因此只在有真实数据时才显示该行。",
+                "同时并入上游 Glint v0.1.27 至 v0.1.28-beta.4 的全部改进：布局变化不再让窗格「掉线」；终端支持听写与 VoiceOver（只读可视区，滚上去的密钥不外泄）；网页远程端在 iPhone/iPad 上支持中文输入法与长按粘贴；Agent 回合计时器随回合结束冻结。"
+            ]
+        ),
+        ReleaseNote(
             version: "0.1.28-beta.4",
             en: [
                 "Panes no longer get stranded when the layout changes. Two problems that came back in beta.2 and beta.3: after switching workspaces, a pane could keep showing the previous workspace's terminal until you relaunched Glint, and after closing or splitting panes, one side could stop resizing when you dragged the divider. Terminals are now handed between containers explicitly instead of racing for them.",

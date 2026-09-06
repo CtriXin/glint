@@ -39,7 +39,7 @@ if [[ -z "$CODESIGN_IDENTITY" ]]; then
   exit 1
 fi
 
-VERSION="${VERSION:-0.1.27-ctrixin.$(git rev-list --count HEAD)}"
+VERSION="${VERSION:-0.1.28-ctrixin.$(git rev-list --count HEAD)}"
 BUILD_NUMBER="${BUILD_NUMBER:-$(date -u +%Y%m%d%H%M)}"
 ARCHIVE_PATH="${ARCHIVE_PATH:-$ROOT/build/CtriTerm-${VERSION}.xcarchive}"
 

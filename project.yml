@@ -44,7 +44,7 @@ targets:
         # remain valid even though the installed app has a distinct name.
         PRODUCT_MODULE_NAME: Glint
         PRODUCT_BUNDLE_IDENTIFIER: com.ctrixin.glint
-        MARKETING_VERSION: 0.1.27-ctrixin.1
+        MARKETING_VERSION: 0.1.28-ctrixin.1
         CURRENT_PROJECT_VERSION: 1
         INFOPLIST_FILE: Glint/Resources/Info.plist
         CODE_SIGN_ENTITLEMENTS: Glint/Resources/Glint.entitlements
