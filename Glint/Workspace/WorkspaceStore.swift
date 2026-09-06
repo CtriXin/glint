@@ -1433,6 +1433,13 @@ final class WorkspaceStore {
                 isInstalled: { PiHookInstaller.isInstalled() },
                 install: { PiHookInstaller.installIfNeeded(socketPath: socketPath) }
             ),
+            AgentHookSpec(
+                handledKey: "glint.agyHooksAutoInstalled",
+                displayName: "Antigravity",
+                isPresent: AgyHookInstaller.isAgentPresent,
+                isInstalled: { AgyHookInstaller.isInstalled() },
+                install: { AgyHookInstaller.installIfNeeded(socketPath: socketPath) }
+            ),
         ]
     }
 
@@ -1483,6 +1490,7 @@ final class WorkspaceStore {
             WorkspaceStore.current?.ompHooksInstalled = OmpHookInstaller.isInstalled()
             WorkspaceStore.current?.grokHooksInstalled = GrokHookInstaller.isInstalled()
             WorkspaceStore.current?.piHooksInstalled = PiHookInstaller.isInstalled()
+            WorkspaceStore.current?.agyHooksInstalled = AgyHookInstaller.isInstalled()
         }
     }
 
