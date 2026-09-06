@@ -40,7 +40,7 @@ enum AgentChoice: String, CaseIterable, Identifiable {
         case .devin: return "DevinMark"
         case .omp: return "OmpMark"
         case .grok: return "GrokMark"
-        case .agy: return "AgyMark"
+        case .agy: return nil   // letter fallback — same treatment as pi
         case .shell: return nil
         }
     }
