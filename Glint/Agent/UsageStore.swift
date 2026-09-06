@@ -36,6 +36,11 @@ struct AgentQuota: Hashable, Codable {
     /// Model-scoped weekly buckets (Claude only, e.g. "Fable"). nil/absent
     /// when the source reports none; old persisted snapshots decode as nil.
     var scopedWeekly: [ScopedQuota]? = nil
+    /// True when the source confirms the window but not its usage numbers
+    /// (Grok team/unified billing: xAI's endpoint reports cap 0). The row
+    /// still renders — period countdown and all — with "—" in place of a
+    /// fabricated percent. nil/absent decodes as "known" for old snapshots.
+    var percentUnknown: Bool? = nil
 
     var primaryWindowLabel: String {
         Self.windowLabel(minutes: primaryWindowMinutes, fallback: "5h")
@@ -76,7 +81,8 @@ struct AgentQuota: Hashable, Codable {
                 return ScopedQuota(name: entry.name,
                                    percent: entry.percent,
                                    resetsAt: finite(entry.resetsAt))
-            }
+            },
+            percentUnknown: percentUnknown
         )
     }
 
@@ -659,9 +665,11 @@ enum CodexLiveReader {
 /// Account-surface caveat — the same conclusion CodexBar's Grok provider
 /// shipped (steipete/CodexBar): team / unified-billing accounts report
 /// `onDemandCap: {val: 0}`; the surface exposes the billing period but not
-/// usage numbers for them. Those reads decode to nil on purpose rather than
-/// drawing a fake 0% bar. Personal / credits accounts (cap > 0) get real
-/// numbers; if xAI ever exposes team usage here, it starts working unchanged.
+/// usage numbers for them. Those reads still produce a quota (window + reset
+/// countdown) with `percentUnknown` set, so the sidebar shows a "—" track
+/// instead of a fabricated 0% bar. Personal / credits accounts (cap > 0, or
+/// a source-reported `creditUsagePercent`) get real numbers; if xAI ever
+/// exposes team usage here, it starts working unchanged.
 enum GrokUsageReader {
     private static let endpoint = URL(string: "https://cli-chat-proxy.grok.com/v1/billing?format=credits")!
 
@@ -685,6 +693,8 @@ enum GrokUsageReader {
         let currentPeriod: Period?
         let onDemandCap: Amount?
         let onDemandUsed: Amount?
+        /// Reported by prepaid/credits surfaces; absent for team accounts.
+        let creditUsagePercent: Double?
     }
 
     private struct Payload: Decodable { let config: Config? }
@@ -719,16 +729,46 @@ enum GrokUsageReader {
     /// Maps a billing config onto the sidebar's quota model. The billing
     /// surface has ONE window (the weekly usage period), so it lands in the
     /// primary slot; `weeklyPercent` stays nil to avoid drawing the same
-    /// numbers twice. A zero cap means the account type doesn't expose usage
-    /// here (team / unified billing) → nil, not a fake 0%.
+    /// numbers twice.
+    ///
+    /// A zero cap means the account type doesn't expose usage numbers here
+    /// (team / unified billing — CodexBar shipped the same conclusion). The
+    /// row still renders: the period and its reset countdown are real, and
+    /// the percent degrades to "—" (`percentUnknown`) instead of drawing a
+    /// fabricated 0% bar. A source-reported `creditUsagePercent` wins over
+    /// the derived math when present.
     private static func quota(from config: Config) -> AgentQuota? {
-        let cap = config.onDemandCap?.val ?? 0
-        let used = config.onDemandUsed?.val ?? 0
-        guard cap > 0, used.isFinite else { return nil }
-        let percent = max(0, min(used / cap * 100, 100))
         let start = config.currentPeriod?.start.flatMap(Self.parseDate)
         let end = config.currentPeriod?.end.flatMap(Self.parseDate)
         let minutes = Self.windowMinutes(start: start, end: end)
+
+        if let reported = config.creditUsagePercent, reported.isFinite {
+            return AgentQuota(
+                sessionPercent: max(0, min(reported, 100)),
+                weeklyPercent: nil,
+                sessionResetsAt: end,
+                weeklyResetsAt: nil,
+                planType: nil,
+                primaryWindowMinutes: minutes,
+                secondaryWindowMinutes: nil
+            )
+        }
+
+        let cap = config.onDemandCap?.val ?? 0
+        let used = config.onDemandUsed?.val ?? 0
+        guard cap > 0, used.isFinite else {
+            return AgentQuota(
+                sessionPercent: 0,
+                weeklyPercent: nil,
+                sessionResetsAt: end,
+                weeklyResetsAt: nil,
+                planType: nil,
+                primaryWindowMinutes: minutes,
+                secondaryWindowMinutes: nil,
+                percentUnknown: true
+            )
+        }
+        let percent = max(0, min(used / cap * 100, 100))
         return AgentQuota(
             sessionPercent: percent,
             weeklyPercent: nil,

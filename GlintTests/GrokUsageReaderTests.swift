@@ -47,14 +47,46 @@ final class GrokUsageReaderTests: XCTestCase {
     }
 
     /// Team / unified-billing accounts report cap 0 — the surface doesn't
-    /// expose usage numbers, so the read must yield nil rather than a
-    /// misleading 0% bar (same call CodexBar made for its Grok provider).
-    func testTeamAccountWithZeroCapYieldsNoQuota() throws {
+    /// expose usage numbers. The read still yields a quota so the row
+    /// renders: period + reset countdown real, percent flagged unknown
+    /// (rendered "—", never a fabricated 0%).
+    func testTeamAccountWithZeroCapRendersUnknownPercent() throws {
         let data = Data(#"""
         {"config":{"currentPeriod":{"type":"USAGE_PERIOD_TYPE_WEEKLY","start":"2026-09-02T07:39:39.262344+00:00","end":"2026-09-09T07:39:39.262344+00:00"},"onDemandCap":{"val":0},"onDemandUsed":{"val":0},"isUnifiedBillingUser":true,"prepaidBalance":{"val":0},"topUpMethod":"TOP_UP_METHOD_SAVED_PAYMENT_METHOD","billingPeriodStart":"2026-09-02T07:39:39.262344+00:00","billingPeriodEnd":"2026-09-09T07:39:39.262344+00:00"}}
         """#.utf8)
 
-        XCTAssertNil(GrokUsageReader.decode(data))
+        let quota = try XCTUnwrap(GrokUsageReader.decode(data))
+        XCTAssertEqual(quota.percentUnknown, true)
+        XCTAssertEqual(quota.sessionPercent, 0)
+        XCTAssertEqual(quota.primaryWindowLabel, "7d")
+        XCTAssertEqual(quota.sessionResetsAt,
+                       GrokUsageReaderTests.date("2026-09-09T07:39:39.262344+00:00"))
+        // Round-trips through the snapshot persistence path.
+        let persisted = try JSONEncoder().encode(quota)
+        let restored = try JSONDecoder().decode(AgentQuota.self, from: persisted)
+        XCTAssertEqual(restored.percentUnknown, true)
+    }
+
+    /// Old snapshots persisted before `percentUnknown` existed decode as
+    /// known — the field is absent from their JSON.
+    func testLegacySnapshotWithoutPercentUnknownDecodesAsKnown() throws {
+        let legacy = Data(#"""
+        {"sessionPercent":42,"weeklyPercent":null,"sessionResetsAt":null,"weeklyResetsAt":null,"planType":null,"primaryWindowMinutes":10080,"secondaryWindowMinutes":null,"scopedWeekly":null}
+        """#.utf8)
+        let restored = try JSONDecoder().decode(AgentQuota.self, from: legacy)
+        XCTAssertNotEqual(restored.percentUnknown, true)
+    }
+
+    /// A source-reported `creditUsagePercent` wins over cap math even when
+    /// the cap reads 0 (prepaid surface).
+    func testReportedCreditUsagePercentWins() throws {
+        let data = Data(#"""
+        {"config":{"currentPeriod":{"start":"2026-09-02T07:39:39+00:00","end":"2026-09-09T07:39:39+00:00"},"onDemandCap":{"val":0},"onDemandUsed":{"val":0},"creditUsagePercent":37.5,"isUnifiedBillingUser":false}}
+        """#.utf8)
+
+        let quota = try XCTUnwrap(GrokUsageReader.decode(data))
+        XCTAssertNil(quota.percentUnknown)
+        XCTAssertEqual(quota.sessionPercent, 37.5, accuracy: 0.001)
     }
 
     /// Over-cap readings clamp to 100 rather than blowing out the bar.
@@ -76,6 +108,7 @@ final class GrokUsageReaderTests: XCTestCase {
 
         let quota = try XCTUnwrap(GrokUsageReader.decode(data))
         XCTAssertNil(quota.sessionResetsAt)
+        XCTAssertNil(quota.percentUnknown)
         XCTAssertEqual(quota.primaryWindowLabel, "7d")
     }
 

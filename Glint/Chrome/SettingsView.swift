@@ -1741,7 +1741,7 @@ private struct AgentsPane: View {
             }
             SettingsDivider()
             SettingsRow("Show usage in sidebar",
-                        subtitle: "Display Grok's weekly usage credits in the sidebar. Reads the token `grok login` keeps in ~/.grok — team plans report no numbers on this surface, so the row stays hidden there.") {
+                        subtitle: "Display Grok's weekly usage credits in the sidebar. Reads the token `grok login` keeps in ~/.grok. Team plans get no numbers from xAI's billing surface — the row then shows the window's reset countdown with a “—” in place of a percent.") {
                 Toggle("", isOn: $usage.grokEnabled)
                     .toggleStyle(.switch).labelsHidden()
             }

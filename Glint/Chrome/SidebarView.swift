@@ -449,7 +449,8 @@ private struct QuotaSection: View {
                     QuotaRow(name: "Grok",
                              iconAsset: MascotAsset.grok(for: nil),
                              quota: grok,
-                             color: Self.grokColor, warn: Self.warnColor)
+                             color: Self.grokColor, warn: Self.warnColor,
+                             rowHelp: "Signed in via `grok login`, but team plans don't expose usage numbers on xAI's billing surface — showing the weekly window's reset only.")
                 }
                 ForEach(codexHomes) { item in
                     QuotaRow(name: item.name,
@@ -479,6 +480,16 @@ private struct QuotaRow: View {
     let quota: AgentQuota
     let color: Color
     let warn: Color
+    /// Optional row-level tooltip elaborating on the icon's name-only one
+    /// (e.g. Grok's "team plans don't expose numbers" explanation).
+    var rowHelp: String? = nil
+
+    /// The Grok row renders an unknown-percent track when xAI's billing
+    /// surface reports no numbers (team/unified accounts) — pass nil so the
+    /// column degrades to "—" instead of drawing a fabricated 0%.
+    private var primaryPercent: Double? {
+        quota.percentUnknown == true ? nil : quota.sessionPercent
+    }
 
     var body: some View {
         HStack(spacing: 12) {
@@ -502,7 +513,7 @@ private struct QuotaRow: View {
                     HStack(spacing: 8) {
                         QuotaColumn(
                             kind: quota.primaryWindowLabel,
-                            percent: quota.sessionPercent,
+                            percent: primaryPercent,
                             resetsAt: quota.sessionResetsAt,
                             now: ctx.date,
                             fill: color,
@@ -538,6 +549,7 @@ private struct QuotaRow: View {
                 }
             }
         }
+        .help(rowHelp ?? name)
     }
 }
 
@@ -576,6 +588,12 @@ private struct QuotaColumn: View {
                     }
                 } else {
                     Text("—").foregroundStyle(Theme.text4)
+                    // Unknown percent (Grok team accounts) still counts the
+                    // window down — the period is real even when usage isn't.
+                    if let reset = resetText {
+                        Text(reset)
+                            .foregroundStyle(Theme.text4)
+                    }
                 }
             }
             .font(.system(size: 9.5, design: .monospaced))

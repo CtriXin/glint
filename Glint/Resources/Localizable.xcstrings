@@ -1823,13 +1823,13 @@
         }
       }
     },
-    "Display Grok's weekly usage credits in the sidebar. Reads the token `grok login` keeps in ~/.grok — team plans report no numbers on this surface, so the row stays hidden there.": {
+    "Display Grok's weekly usage credits in the sidebar. Reads the token `grok login` keeps in ~/.grok. Team plans get no numbers from xAI's billing surface — the row then shows the window's reset countdown with a “—” in place of a percent.": {
       "extractionState": "manual",
       "localizations": {
         "zh-Hans": {
           "stringUnit": {
             "state": "translated",
-            "value": "在侧边栏显示 Grok 的每周用量积分。读取 `grok login` 存在 ~/.grok 的令牌 —— 团队套餐在此接口不提供数字，因此不显示该行。"
+            "value": "在侧栏显示 Grok 的每周用量积分。读取 `grok login` 存在 ~/.grok 的令牌。团队套餐在 xAI 计费接口上没有数字 —— 此时该行显示窗口重置倒计时，百分比位置为“—”。"
           }
         }
       }
@@ -4748,6 +4748,17 @@
           "stringUnit": {
             "state": "translated",
             "value": "侧栏毛玻璃"
+          }
+        }
+      }
+    },
+    "Signed in via `grok login`, but team plans don't expose usage numbers on xAI's billing surface — showing the weekly window's reset only.": {
+      "extractionState": "manual",
+      "localizations": {
+        "zh-Hans": {
+          "stringUnit": {
+            "state": "translated",
+            "value": "已通过 `grok login` 登录，但团队套餐在 xAI 计费接口上不提供用量数字 —— 仅显示每周窗口的重置倒计时。"
           }
         }
       }
