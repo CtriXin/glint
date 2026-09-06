@@ -19,12 +19,19 @@ those commits without including the files that define this distribution.
 ## Daily use: use only CtriTerm
 
 CtriTerm is the local app's user-facing name and is installed at
-`/Applications/CtriTerm.app` (`0.1.27-ctrixin.403`). It replaced the prior
+`/Applications/CtriTerm.app` (`0.1.28-ctrixin.435`). It replaced the prior
 `CtriXin Glint.app` while retaining the same internal identity and all existing
-local state. The installed `.403` release is Developer ID signed, Apple
+local state. The installed `.435` release is Developer ID signed, Apple
 notarized, and stapled, so it passes normal Gatekeeper verification on another
 Mac.
 
+`.435` merges upstream Glint through `v0.1.28-beta.4` (pane host-claim race
+fixes, terminal dictation/VoiceOver reading the visible screen only, web
+remote iOS IME + long-press paste, frozen agent turn timers, microphone
+permission) and adds the Grok sidebar usage row: Settings ▸ Agents ▸ Grok
+enables a quota track read from xAI's billing endpoint with the token `grok
+login` keeps in `~/.grok/auth.json` — team/unified-billing accounts report no
+numbers on that surface, so the row appears only when there are real numbers.
 `.403` reads the Claude quota through the Claude CLI itself (`claude /usage`,
 spawned headless, 15-minute background floor) instead of touching Claude Code's
 keychain item — whose ACL Claude Code rewrites on every credential refresh,
@@ -120,7 +127,7 @@ exists in `/Applications` cannot be reinstalled, verified, or rolled back to.
    entry and commit it, and the count *after* that commit is the number to
    write. Never pre-write an entry for a version you are not about to tag.
    `-ctrixin.N` sorts as a pre-release, so these entries roll up under the
-   `0.1.27` base exactly like upstream betas do.
+   current base (`0.1.28` as of `.435`) exactly like upstream betas do.
 2. **Build, notarize, install.** Version defaults from the commit count, so no
    `VERSION=` override is normally needed:
 
