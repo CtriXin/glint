@@ -21,11 +21,11 @@ those commits without including the files that define this distribution.
 CtriTerm is the local app's user-facing name and is installed at
 `/Applications/CtriTerm.app` (`0.1.28-ctrixin.435`). It replaced the prior
 `CtriXin Glint.app` while retaining the same internal identity and all existing
-local state. The installed `.435` release is Developer ID signed, Apple
+local state. The installed `.445` release is Developer ID signed, Apple
 notarized, and stapled, so it passes normal Gatekeeper verification on another
 Mac.
 
-`.435` merges upstream Glint through `v0.1.28-beta.4` (pane host-claim race
+`.445` adds Antigravity CLI (agy) as a tracked agent (shared ~/.gemini/config/hooks.json entry with foreign hooks preserved, thinking/tool/done status, `agy --conversation` resume; no approval state — agy has no permission hook) plus the xAI mark for Grok and the rainbow-arch Antigravity mark, and offers Antigravity in the first-launch hook prompt. `.435` merges upstream Glint through `v0.1.28-beta.4` (pane host-claim race
 fixes, terminal dictation/VoiceOver reading the visible screen only, web
 remote iOS IME + long-press paste, frozen agent turn timers, microphone
 permission) and adds the Grok sidebar usage row: Settings ▸ Agents ▸ Grok
