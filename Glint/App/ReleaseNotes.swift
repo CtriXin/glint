@@ -52,6 +52,17 @@ enum ReleaseNotes {
     /// "发版「更新内容」" for the release-time workflow.
     static let all: [ReleaseNote] = [
         ReleaseNote(
+            version: "0.1.28-ctrixin.445",
+            en: [
+                "Antigravity (agy) joins the tracked agents. Install its hook from Settings ▸ Agents and agy panes report thinking, tool calls, and turn completion in the sidebar and tab chips, with the per-turn timer and session restore via `agy --conversation <id>`. The hook is a named entry in the hooks.json agy shares between its TUI and backend — every other hook in that file is preserved. Approval prompts stay in agy's own UI (it has no permission hook), so panes never show a waiting-for-approval state.",
+                "Grok's marks everywhere — tab chips, sidebar cards, switcher, launcher — are now the xAI slashed-circle mark, one variant per status color; Antigravity carries its own rainbow-arch mark."
+            ],
+            zh: [
+                "Antigravity（agy）加入受跟踪 Agent 行列。在「设置 ▸ Agent ▸ Antigravity」安装 hook 后，agy 窗格会向侧栏和标签页上报思考中、工具调用和回合完成，带每回合计时，并支持通过 `agy --conversation <id>` 恢复会话。hook 是 agy 的 TUI 与后端共享的 hooks.json 里的一个命名条目 —— 文件里你自己的其它 hook 全部保留。审批确认保留在 agy 自己的界面里（它没有权限 hook），因此窗格不会显示「等待确认」状态。",
+                "Grok 各处图标（标签页、侧栏卡片、切换器、启动选择器）换成 xAI 斜线圆环 mark，按状态配色各一版；Antigravity 使用自己的彩虹拱门 mark。"
+            ]
+        ),
+        ReleaseNote(
             version: "0.1.28-ctrixin.438",
             en: [
                 "Grok's sidebar usage row now stays visible on team plans: xAI's billing surface reports no usage numbers for them, so the row shows the weekly window's reset countdown with a “—” in place of a percent (and a tooltip explaining why) instead of disappearing entirely."
