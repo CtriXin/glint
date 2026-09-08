@@ -435,7 +435,7 @@ enum AgentHookInstaller {
       # live CLI: invocationNum is zero-based (first call reports 0).
       if [ "$HOOK" = "PreInvocation" ] && [ "$AGENT" = "agy" ]; then
         NUM=$(/usr/bin/plutil -extract invocationNum raw -o - "$TMP" 2>/dev/null || true)
-        if [ "$NUM" = "0" ] || [ "$NUM" = "1" ]; then HOOK="UserPromptSubmit"; fi
+        if [ "$NUM" = "0" ]; then HOOK="UserPromptSubmit"; fi
       fi
       # Antigravity reports a failed loop via Stop + terminationReason ERROR
       # (proto enum, SCREAMING_SNAKE — e.g. NO_TOOL_CALL on a normal finish)
