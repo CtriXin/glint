@@ -89,6 +89,7 @@
 		DFDF7E690BD53E885484EA00 /* OmpHookInstallerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FDE16D678B1BC67A99EBA74F /* OmpHookInstallerTests.swift */; };
 		E464D0233508CD31C1235054 /* AgentBridge.swift in Sources */ = {isa = PBXBuildFile; fileRef = 05F2CA2243872C8111048EF2 /* AgentBridge.swift */; };
 		E80809A987A07731FF35D01D /* PersistenceRecoveryTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51DE2D7740BD03498A936B62 /* PersistenceRecoveryTests.swift */; };
+		E9DB92D63BAB21359153A525 /* AgyHookInstallerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = C82B0F532B8B13AB895CE778 /* AgyHookInstallerTests.swift */; };
 		EAC3EE05466931E8AAF620D2 /* WebRemoteProtocol.swift in Sources */ = {isa = PBXBuildFile; fileRef = 943254F613D20C4F0941EFA6 /* WebRemoteProtocol.swift */; };
 		ED46CD7A6E09551A775AD3B8 /* PaneAgentKindTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = EBCC04C19D745AA867D961FD /* PaneAgentKindTests.swift */; };
 		EE6D05AB1D935F502865ABDA /* crypto-LICENSE.txt in Resources */ = {isa = PBXBuildFile; fileRef = 2C85E16653B066382F22FEDD /* crypto-LICENSE.txt */; };
@@ -200,6 +201,7 @@
 		C11B3335E47DDAF77A883064 /* ModalOverlay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ModalOverlay.swift; sourceTree = "<group>"; };
 		C6FB2646BF84D9DCBB89FC93 /* GitRepositoryWatcher.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = GitRepositoryWatcher.swift; sourceTree = "<group>"; };
 		C753FB652599A4C7900F8AA4 /* FontCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FontCatalog.swift; sourceTree = "<group>"; };
+		C82B0F532B8B13AB895CE778 /* AgyHookInstallerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AgyHookInstallerTests.swift; sourceTree = "<group>"; };
 		C8CE97CEC40ECB2954522DD7 /* InfoPlist.xcstrings */ = {isa = PBXFileReference; lastKnownFileType = text.json.xcstrings; path = InfoPlist.xcstrings; sourceTree = "<group>"; };
 		C9E2B9ADF809766CE4278047 /* SafeJSON.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SafeJSON.swift; sourceTree = "<group>"; };
 		D03AFC613028C5BB0D99238D /* zsh-autosuggestions.zsh */ = {isa = PBXFileReference; path = "zsh-autosuggestions.zsh"; sourceTree = "<group>"; };
@@ -301,6 +303,7 @@
 				D36068DE0F0DDDECA779C743 /* AgentElapsedTimerTests.swift */,
 				FF0082D535969C315B8D75D7 /* AgentHookRoutingTests.swift */,
 				4EEF00CBEF45A9D60423A207 /* AgentKindResolutionTests.swift */,
+				C82B0F532B8B13AB895CE778 /* AgyHookInstallerTests.swift */,
 				6AB338782EF6F22B7B381DA8 /* CodexHomeStoreTests.swift */,
 				26141150D2DB4C0589558ECC /* CodexHookInstallerTests.swift */,
 				0FBF22AEC81DBE92987A8CB4 /* CodexUsageReaderTests.swift */,
@@ -600,6 +603,7 @@
 				D0C97B91E9D08E8943549FCD /* AgentElapsedTimerTests.swift in Sources */,
 				A019A2AD685F1407D7E2A7E1 /* AgentHookRoutingTests.swift in Sources */,
 				81532B36FEC3039B8EAD9CB1 /* AgentKindResolutionTests.swift in Sources */,
+				E9DB92D63BAB21359153A525 /* AgyHookInstallerTests.swift in Sources */,
 				C41119D04864077E5B554F59 /* CodexHomeStoreTests.swift in Sources */,
 				0FEECB27EB1ACE11E29ECCEF /* CodexHookInstallerTests.swift in Sources */,
 				FEBC3158CB471E9ABDF931BB /* CodexUsageReaderTests.swift in Sources */,

@@ -1419,6 +1419,7 @@ private struct AgentsPane: View {
     @State private var ompInstallFailed = false
     @State private var grokInstallFailed = false
     @State private var piInstallFailed = false
+    @State private var agyInstallFailed = false
     @State private var newCodexHomePath = ""
     @State private var newCodexHomeLabel = ""
     @State private var codexHomeErrors: [UUID: String] = [:]
@@ -1776,6 +1777,53 @@ private struct AgentsPane: View {
             SettingsRow("Hook config",
                         subtitle: "Auto-discovered TypeScript extension under pi's global extensions directory; only reports when Glint's pane environment variables are present.") {
                 Text("~/.pi/agent/extensions/glint-agent-bridge.ts")
+                    .font(.system(size: 11, design: .monospaced))
+                    .foregroundStyle(Theme.text3)
+                    .lineLimit(1)
+                    .truncationMode(.head)
+            }
+        }
+
+        SettingsCard("Antigravity",
+                     footer: "Glint registers a named hook entry (\"glint\") in the hooks.json the Antigravity CLI (agy) shares between its TUI and backend, so sessions report thinking, tool calls, and turn completion. Every other hook in that file is preserved; uninstall removes only Glint's entry. Approval prompts stay in agy's own UI (it has no permission hook), so panes never show a needs-approval state.") {
+            SettingsRow("Status", subtitle: agyInstallFailed
+                        ? "Install failed — check Console for [glint] logs."
+                        : (store.agyHooksInstalled
+                           ? "Hook entry merged into ~/.gemini/config/hooks.json."
+                           : (store.agyDetected
+                              ? "Antigravity CLI detected — install the hook entry to show its status."
+                              : "Antigravity CLI not detected on this Mac."))) {
+                HStack(spacing: 8) {
+                    StatusPill(
+                        label: store.agyHooksInstalled ? "Installed" : (store.agyDetected ? "Not installed" : "Not detected"),
+                        tone: store.agyHooksInstalled ? .ok : .neutral
+                    )
+                    if store.agyHooksInstalled {
+                        Button("Uninstall") {
+                            store.uninstallAgyHooks()
+                            agyInstallFailed = false
+                        }
+                            .controlSize(.small)
+                    } else {
+                        Button("Install") {
+                            store.installAgyHooks()
+                            agyInstallFailed = !store.agyHooksInstalled
+                        }
+                            .controlSize(.small)
+                            .tint(store.accent)
+                    }
+                }
+            }
+            SettingsDivider()
+            SettingsRow("Resume session on launch",
+                        subtitle: "When Glint reopens, each pane that was running Antigravity at last quit is resumed via `agy --conversation <conversation-id>` — so multiple agy panes in one workspace land back in their own conversations. Falls back to `agy --continue` for panes whose conversation id wasn't captured.") {
+                Toggle("", isOn: $store.restoreAgySession)
+                    .toggleStyle(.switch).labelsHidden()
+            }
+            SettingsDivider()
+            SettingsRow("Hook config",
+                        subtitle: "A named entry in the hooks document agy shares between TUI and backend. Only reports when Glint's pane environment variables are present, so an agy session outside Glint is a no-op.") {
+                Text("~/.gemini/config/hooks.json")
                     .font(.system(size: 11, design: .monospaced))
                     .foregroundStyle(Theme.text3)
                     .lineLimit(1)
