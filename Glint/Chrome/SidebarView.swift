@@ -98,7 +98,9 @@ struct SidebarView: View {
                 .scrollContentBackground(.hidden)
 
                 VStack(spacing: 0) {
-                    QuotaSection(claude: usage.claude, codexHomes: usage.codexSidebarQuotas)
+                    QuotaSection(claude: usage.claude,
+                                 grok: usage.grok,
+                                 codexHomes: usage.codexSidebarQuotas)
                     newWorkspaceCard
                         .padding(.horizontal, 10)
                         .padding(.top, 10)
@@ -392,15 +394,20 @@ struct SidebarView: View {
 private struct QuotaSection: View {
     @EnvironmentObject var store: WorkspaceStore
     let claude: AgentQuota?
+    let grok: AgentQuota?
     let codexHomes: [CodexSidebarQuota]
 
     /// Brand fills, matching the sidebar mascot shadows.
     private static let claudeColor = Color(red: 235/255, green: 140/255, blue: 82/255)
     private static let codexColor = Color(red: 82/255, green: 97/255, blue: 255/255)
+    /// xAI keeps Grok monochrome, so pick a violet that reads as "Grok" next
+    /// to the warm Claude orange and cool Codex blue without impersonating
+    /// either.
+    private static let grokColor = Color(red: 157/255, green: 134/255, blue: 255/255)
     private static let warnColor = Color(red: 1.0, green: 0.745, blue: 0.18) // #FFBE2E
 
     var body: some View {
-        if claude == nil && codexHomes.isEmpty {
+        if claude == nil && grok == nil && codexHomes.isEmpty {
             EmptyView()
         } else {
             VStack(spacing: 10) {
@@ -410,6 +417,13 @@ private struct QuotaSection: View {
                                                            isSpark: store.claudeIconStyle == .spark),
                              quota: claude,
                              color: Self.claudeColor, warn: Self.warnColor)
+                }
+                if let grok {
+                    QuotaRow(name: "Grok",
+                             iconAsset: MascotAsset.grok(for: nil),
+                             quota: grok,
+                             color: Self.grokColor, warn: Self.warnColor,
+                             rowHelp: "Signed in via `grok login`, but team plans don't expose usage numbers on xAI's billing surface — showing the weekly window's reset only.")
                 }
                 ForEach(codexHomes) { item in
                     QuotaRow(name: item.name,
@@ -439,6 +453,16 @@ private struct QuotaRow: View {
     let quota: AgentQuota
     let color: Color
     let warn: Color
+    /// Optional row-level tooltip elaborating on the icon's name-only one
+    /// (e.g. Grok's "team plans don't expose numbers" explanation).
+    var rowHelp: String? = nil
+
+    /// The Grok row renders an unknown-percent track when xAI's billing
+    /// surface reports no numbers (team/unified accounts) — pass nil so the
+    /// column degrades to "—" instead of drawing a fabricated 0%.
+    private var primaryPercent: Double? {
+        quota.percentUnknown == true ? nil : quota.sessionPercent
+    }
 
     var body: some View {
         HStack(spacing: 12) {
@@ -456,7 +480,7 @@ private struct QuotaRow: View {
                 HStack(spacing: 8) {
                     QuotaColumn(
                         kind: quota.primaryWindowLabel,
-                        percent: quota.sessionPercent,
+                        percent: primaryPercent,
                         resetsAt: quota.sessionResetsAt,
                         now: ctx.date,
                         fill: color,
@@ -475,6 +499,7 @@ private struct QuotaRow: View {
                 }
             }
         }
+        .help(rowHelp ?? name)
     }
 }
 
@@ -513,6 +538,12 @@ private struct QuotaColumn: View {
                     }
                 } else {
                     Text("—").foregroundStyle(Theme.text4)
+                    // Unknown percent (Grok team accounts) still counts the
+                    // window down — the period is real even when usage isn't.
+                    if let reset = resetText {
+                        Text(reset)
+                            .foregroundStyle(Theme.text4)
+                    }
                 }
             }
             .font(.system(size: 9.5, design: .monospaced))
