@@ -15,6 +15,7 @@ function makeTouchScrollHarness(baseY, mouseTrackingMode = "none") {
   const listeners = new Map();
   const wheelEvents = [];
   const scrollCalls = [];
+  let preventDefaultCalls = 0;
   const row = { getBoundingClientRect: () => ({ height: 10 }) };
   const screen = { dispatchEvent: event => wheelEvents.push(event) };
   const target = {
@@ -44,10 +45,24 @@ function makeTouchScrollHarness(baseY, mouseTrackingMode = "none") {
       { clientX: 100, clientY: centerY },
       { clientX: 140, clientY: centerY },
     ],
-    preventDefault() {},
+    preventDefault() { preventDefaultCalls += 1; },
   });
-  return { dispatchTouch, scrollCalls, wheelEvents };
+  return {
+    dispatchTouch,
+    scrollCalls,
+    wheelEvents,
+    get preventDefaultCalls() { return preventDefaultCalls; },
+  };
 }
+
+test("only claims the default gesture after vertical scroll is identified", () => {
+  const harness = makeTouchScrollHarness(40);
+  harness.dispatchTouch("touchstart", 100);
+  harness.dispatchTouch("touchmove", 102);
+  assert.equal(harness.preventDefaultCalls, 0);
+  harness.dispatchTouch("touchmove", 110);
+  assert.equal(harness.preventDefaultCalls, 1);
+});
 
 test("keeps scrolling terminal history across consecutive two-finger moves", () => {
   const harness = makeTouchScrollHarness(40);

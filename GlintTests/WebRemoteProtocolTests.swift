@@ -380,7 +380,7 @@ final class WebRemoteProtocolTests: XCTestCase {
         XCTAssertTrue(input.contains("new WheelEventLike(\"wheel\""))
         XCTAssertTrue(input.contains(".xterm-screen"))
         XCTAssertTrue(input.contains("passive: false"))
-        XCTAssertTrue(style.contains("touch-action: none"))
+        XCTAssertTrue(style.contains("touch-action: manipulation"))
     }
 
     func testBundledClientCanDisableTerminalAutoFocus() throws {
