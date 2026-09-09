@@ -219,6 +219,7 @@ final class GhosttySurfaceView: NSView, NSTextInputClient {
     required init?(coder: NSCoder) { fatalError("not used") }
 
     deinit {
+        cancelPendingWebRemoteSnapshots()
         if let s = surface {
             ghostty_surface_set_pty_tee_v2_cb(s, nil, nil)
             ghostty_surface_free(s)
@@ -499,7 +500,14 @@ final class GhosttySurfaceView: NSView, NSTextInputClient {
     /// the prior session ended inside a full-screen TUI.
     private func restoreScrollback(into s: ghostty_surface_t, data: Data) {
         var text = String(decoding: data, as: UTF8.self)
-        guard !text.isEmpty else { return }
+        guard !text.isEmpty else {
+            // A waiter is allowed to outlive the restore attempt. Always
+            // complete it, even when an empty/corrupt archive gives us
+            // nothing to echo; otherwise the browser's first snapshot hangs
+            // forever waiting for a surface that can no longer change.
+            finishPendingWebRemoteSnapshots()
+            return
+        }
         // Remember the prior history verbatim so flushes re-attach it as a
         // stable prefix rather than re-deriving it (at a possibly different
         // width) from the grid every cycle. Trailing newlines stripped so the
@@ -539,6 +547,17 @@ final class GhosttySurfaceView: NSView, NSTextInputClient {
             let snapshot = self?.webRemoteSnapshot()
             waiters.forEach { $0(snapshot) }
         }
+    }
+
+    /// Complete browser snapshot requests that can no longer be fulfilled.
+    /// Surface teardown clears the pending restore data before the normal
+    /// restore callback can run, so leaving these closures queued would leave
+    /// the Web Remote request permanently pending.
+    private func cancelPendingWebRemoteSnapshots() {
+        guard !pendingWebRemoteSnapshotWaiters.isEmpty else { return }
+        let waiters = pendingWebRemoteSnapshotWaiters
+        pendingWebRemoteSnapshotWaiters.removeAll()
+        waiters.forEach { $0(nil) }
     }
 
     /// Snapshot the pane's current scrollback to disk as colored text (ANSI SGR).
@@ -1061,6 +1080,7 @@ final class GhosttySurfaceView: NSView, NSTextInputClient {
         }
 
         ghostty_surface_set_pty_tee_v2_cb(s, nil, nil)
+        cancelPendingWebRemoteSnapshots()
         surface = nil
         ghostty_surface_free(s)
         pendingVisibleRedraw = false

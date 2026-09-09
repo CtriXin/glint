@@ -19,13 +19,23 @@ export function installTwoFingerTerminalScrolling(
   WheelEventLike = WheelEvent
 ) {
   let touchScrollY = null;
+  let touchStartY = null;
+  let touchStartDistance = null;
+  let touchGesture = null;
   let touchScrollRemainder = 0;
 
   const reset = () => {
     touchScrollY = null;
+    touchStartY = null;
+    touchStartDistance = null;
+    touchGesture = null;
     touchScrollRemainder = 0;
   };
   const touchCenterY = touches => (touches[0].clientY + touches[1].clientY) / 2;
+  const touchDistance = touches => Math.hypot(
+    touches[0].clientX - touches[1].clientX,
+    touches[0].clientY - touches[1].clientY
+  );
   const terminalLineHeight = () => {
     const row = target.querySelector(".xterm-rows > div");
     const measured = row?.getBoundingClientRect().height;
@@ -64,8 +74,10 @@ export function installTwoFingerTerminalScrolling(
       reset();
       return;
     }
-    event.preventDefault();
     touchScrollY = touchCenterY(event.touches);
+    touchStartY = touchScrollY;
+    touchStartDistance = touchDistance(event.touches);
+    touchGesture = "undecided";
     touchScrollRemainder = 0;
   }, { passive: false });
 
@@ -74,8 +86,23 @@ export function installTwoFingerTerminalScrolling(
       reset();
       return;
     }
-    event.preventDefault();
     const nextY = touchCenterY(event.touches);
+    const verticalMovement = Math.abs(nextY - touchStartY);
+    const scaleMovement = Math.abs(touchDistance(event.touches) - touchStartDistance);
+    if (touchGesture === "undecided") {
+      // Leave pinch/zoom to the browser. Only claim the gesture once the
+      // fingers have clearly moved vertically together.
+      if (scaleMovement > 8 && scaleMovement > verticalMovement) {
+        touchGesture = "pinch";
+        reset();
+        return;
+      }
+      if (verticalMovement > 4 && verticalMovement > scaleMovement) {
+        touchGesture = "scroll";
+      }
+    }
+    if (touchGesture === "pinch") return;
+    if (touchGesture === "scroll") event.preventDefault();
     touchScrollRemainder += touchScrollY - nextY;
     touchScrollY = nextY;
 
