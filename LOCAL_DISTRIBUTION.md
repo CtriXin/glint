@@ -19,13 +19,13 @@ those commits without including the files that define this distribution.
 ## Daily use: use only CtriTerm
 
 CtriTerm is the local app's user-facing name and is installed at
-`/Applications/CtriTerm.app` (`0.1.28-ctrixin.448`). It replaced the prior
+`/Applications/CtriTerm.app` (`0.1.28-ctrixin.480`). It replaced the prior
 `CtriXin Glint.app` while retaining the same internal identity and all existing
-local state. The installed `.448` release is Developer ID signed, Apple
+local state. The installed `.480` release is Developer ID signed, Apple
 notarized, and stapled, so it passes normal Gatekeeper verification on another
 Mac.
 
-`.448` restores the `DEBUG` compilation condition in Debug builds (target-level `SWIFT_ACTIVE_COMPILATION_CONDITIONS` now inherits project conditions), so a locally run Debug build binds `agent-debug.sock` again instead of stealing hook events from the installed app. `.445` adds Antigravity CLI (agy) as a tracked agent (shared ~/.gemini/config/hooks.json entry with foreign hooks preserved, thinking/tool/done status, `agy --conversation` resume; no approval state — agy has no permission hook) plus the xAI mark for Grok and the rainbow-arch Antigravity mark, and offers Antigravity in the first-launch hook prompt. `.435` merges upstream Glint through `v0.1.28-beta.4` (pane host-claim race
+`.480` merges upstream Glint through `v0.1.28-beta.5` (per-process agent sockets so no second instance can steal pane status, upstream #120 agy first-turn fix, web remote snapshot/touch/mobile fixes) on top of `.448` restoring the `DEBUG` compilation condition in Debug builds (target-level `SWIFT_ACTIVE_COMPILATION_CONDITIONS` now inherits project conditions), so a locally run Debug build binds `agent-debug-<pid>.sock` again instead of stealing hook events from the installed app. `.445` adds Antigravity CLI (agy) as a tracked agent (shared ~/.gemini/config/hooks.json entry with foreign hooks preserved, thinking/tool/done status, `agy --conversation` resume; no approval state — agy has no permission hook) plus the xAI mark for Grok and the rainbow-arch Antigravity mark, and offers Antigravity in the first-launch hook prompt. `.435` merges upstream Glint through `v0.1.28-beta.4` (pane host-claim race
 fixes, terminal dictation/VoiceOver reading the visible screen only, web
 remote iOS IME + long-press paste, frozen agent turn timers, microphone
 permission) and adds the Grok sidebar usage row: Settings ▸ Agents ▸ Grok
