@@ -49,7 +49,10 @@ targets:
         INFOPLIST_FILE: Glint/Resources/Info.plist
         CODE_SIGN_ENTITLEMENTS: Glint/Resources/Glint.entitlements
         SWIFT_OBJC_BRIDGING_HEADER: Glint/App/Glint-Bridging-Header.h
-        SWIFT_ACTIVE_COMPILATION_CONDITIONS: CTRIXIN_DISTRIBUTION
+        # $(inherited) keeps the project-level DEBUG flag alive in the Debug
+        # configuration; without it a Debug build also binds the production
+        # agent.sock and steals hook events from an installed CtriTerm.
+        SWIFT_ACTIVE_COMPILATION_CONDITIONS: "$(inherited) CTRIXIN_DISTRIBUTION"
         CODE_SIGN_STYLE: Automatic
         CODE_SIGN_IDENTITY: "-"
         DEVELOPMENT_TEAM: ""
