@@ -997,8 +997,8 @@ private struct WorkspaceCard: View {
             } else if isGrok {
                 GrokMascotIcon(status: status)
             } else if isAgy {
-                // Static brand mark (no mascot family) — the status dot
-                // overlay below stays enabled so pane state stays readable.
+                // No mascot family (yet) — the static brand mark plus the
+                // status dot overlay below keeps panes readable.
                 Image("AgyMark")
                     .resizable()
                     .interpolation(.high)

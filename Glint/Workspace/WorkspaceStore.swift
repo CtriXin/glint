@@ -934,6 +934,9 @@ final class WorkspaceStore {
     /// Whether Glint's Antigravity hooks are registered in `~/.gemini/config/hooks.json`.
     var agyHooksInstalled: Bool = false
 
+    /// Whether Glint's Antigravity hooks are registered in `~/.gemini/config/hooks.json`.
+    var agyHooksInstalled: Bool = false
+
     /// Whether Glint's modified-Enter shell keybindings are present in the
     /// user's shell rc (~/.zshrc / ~/.bashrc). Opt-in, default off.
     var shellKeybindsInstalled: Bool = false
@@ -1125,7 +1128,7 @@ final class WorkspaceStore {
         didSet { UserDefaults.standard.set(restoreAgySession, forKey: "glint.restoreAgySession") }
     }
 
-    /// Maps each agent kind to the toggle that gates its
+    /// Maps each agent kind to the @Published toggle that gates its
     /// session-restore-on-launch. Single source of truth: adding a new
     /// agent means adding ONE entry here, not editing two parallel switches
     /// across files (one here, one in `PaneAgentKind.restoreCommand`).
@@ -2974,15 +2977,27 @@ final class WorkspaceStore {
         ]
     }
 
-    func webRemoteTerminalSnapshot(pane: String) -> WebRemoteTerminalSnapshotResult {
-        guard let key = Self.parsePaneKey(pane) else { return .failure("bad-request") }
-        guard paneExists(key) else { return .failure("unknown-pane") }
-        guard let view = surfaceViews[key], view.ensureLiveForWebRemoteControl() else {
-            return .failure("pane-not-ready")
+    func webRemoteTerminalSnapshot(
+        pane: String,
+        size: WebRemoteTerminalSize,
+        completion: @escaping (WebRemoteTerminalSnapshotResult) -> Void
+    ) {
+        guard let key = Self.parsePaneKey(pane) else {
+            completion(.failure("bad-request")); return
+        }
+        guard paneExists(key) else {
+            completion(.failure("unknown-pane")); return
+        }
+        guard let view = surfaceViews[key] else {
+            completion(.failure("pane-not-ready")); return
         }
         webRemoteControlledPanes.insert(key)
-        guard let snapshot = view.webRemoteSnapshot() else { return .failure("pane-not-ready") }
-        return .success(snapshot)
+        view.webRemoteSnapshot(size: size) { snapshot in
+            guard let snapshot else {
+                completion(.failure("pane-not-ready")); return
+            }
+            completion(.success(snapshot))
+        }
     }
 
     func webRemoteSetTerminalSize(pane: String, size: WebRemoteTerminalSize) -> String? {
