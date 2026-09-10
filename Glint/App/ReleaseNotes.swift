@@ -52,6 +52,19 @@ enum ReleaseNotes {
     /// "发版「更新内容」" for the release-time workflow.
     static let all: [ReleaseNote] = [
         ReleaseNote(
+            version: "0.1.28-ctrixin.480",
+            en: [
+                "Merges upstream Glint v0.1.28-beta.5. Hook events now travel to a per-process socket, so a second Glint/CtriTerm instance — or a leftover from a crash — can no longer steal pane status from the app that launched your terminals.",
+                "Antigravity turns: only the turn's first invocation restarts the elapsed timer; a second tool call no longer resets it mid-turn.",
+                "Web remote hardening from upstream: snapshot and touch-gesture gaps closed, plus mobile scroll, focus, and offline-history fixes."
+            ],
+            zh: [
+                "合并上游 Glint v0.1.28-beta.5。Hook 事件现在发往按进程隔离的 socket，第二个 Glint/CtriTerm 实例（或崩溃残留）再也无法抢走启动终端的那个实例的窗格状态。",
+                "Antigravity 回合：只有回合内的第一次调用会重新开始计时，第二次工具调用不再中途重置计时器。",
+                "来自上游的 Web remote 加固：补上快照与触摸手势缺口，修复移动端滚动、焦点与离线历史问题。"
+            ]
+        ),
+        ReleaseNote(
             version: "0.1.28-ctrixin.445",
             en: [
                 "Antigravity (agy) joins the tracked agents. Install its hook from Settings ▸ Agents and agy panes report thinking, tool calls, and turn completion in the sidebar and tab chips, with the per-turn timer and session restore via `agy --conversation <id>`. The hook is a named entry in the hooks.json agy shares between its TUI and backend — every other hook in that file is preserved. Approval prompts stay in agy's own UI (it has no permission hook), so panes never show a waiting-for-approval state.",
